@@ -1,0 +1,92 @@
+name: CI — Custom Presenter
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-dotnet:
+    name: Backend .NET 10 (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Instalar .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restaurar dependencias NuGet
+        run: dotnet restore CustomPresenter.sln
+
+      - name: Verificar formato (.NET)
+        run: dotnet format CustomPresenter.sln --no-restore --verify-no-changes
+
+      - name: Compilar solución (TreatWarningsAsErrors)
+        run: dotnet build CustomPresenter.sln --no-restore
+
+      - name: Ejecutar pruebas unitarias y de integración
+        run: dotnet test CustomPresenter.sln --no-build -m:1 --logger "console;verbosity=normal"
+
+      - name: Auditar paquetes NuGet vulnerables
+        shell: bash
+        run: |
+          OUTPUT=$(dotnet list CustomPresenter.sln package --vulnerable --include-transitive)
+          echo "$OUTPUT"
+          if echo "$OUTPUT" | grep -qiE "has the following vulnerable packages|tiene los siguientes paquetes vulnerables"; then
+            echo "::error::Se detectaron paquetes NuGet vulnerables."
+            exit 1
+          fi
+
+  frontend-vue:
+    name: Frontend Vue 3 + TypeScript
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Ejecutar ESLint (Vue + TypeScript + Security)
+        run: npm run lint
+
+      - name: Verificar formato Prettier
+        run: npm run format:check
+
+      - name: Verificar tipos (vue-tsc)
+        run: npm run check
+
+      - name: Ejecutar pruebas unitarias (Vitest)
+        run: npm test
+
+      - name: Compilar bundle de producción
+        run: npm run build
+
+      - name: Auditar dependencias de producción (npm audit)
+        run: npm audit --omit=dev --audit-level=moderate

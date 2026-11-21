@@ -32,61 +32,37 @@ public sealed class LiveStateManager
     /// <summary>
     /// Proyecta una diapositiva y notifica a todos los suscriptores.
     /// </summary>
-    public async Task<LiveState> ProjectSlideAsync(
+    public Task<LiveState> ProjectSlideAsync(
         SlideContent slide,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(slide);
-
-        if (string.IsNullOrWhiteSpace(slide.Text))
-        {
-            throw new DomainException("El contenido de la diapositiva no puede estar vacío.");
-        }
-
-        LiveState updated;
-        lock (_sync)
-        {
-            updated = new LiveState(
-                slide,
-                new LiveFlags(ClearText: false, Blackout: false, Logo: false));
-            _state = updated;
-        }
-
-        await NotifyAsync(updated, cancellationToken).ConfigureAwait(false);
-        return updated;
-    }
+        CancellationToken cancellationToken = default) =>
+        UpdateStateAsync(_ => LiveState.FromSlide(slide), cancellationToken);
 
     /// <summary>
     /// Alterna la bandera de limpiar texto manteniendo la diapositiva activa.
     /// </summary>
-    public async Task<LiveState> ToggleClearTextAsync(CancellationToken cancellationToken = default)
-    {
-        LiveState updated;
-        lock (_sync)
-        {
-            updated = _state with
-            {
-                Flags = _state.Flags with { ClearText = !_state.Flags.ClearText },
-            };
-            _state = updated;
-        }
-
-        await NotifyAsync(updated, cancellationToken).ConfigureAwait(false);
-        return updated;
-    }
+    public Task<LiveState> ToggleClearTextAsync(CancellationToken cancellationToken = default) =>
+        UpdateStateAsync(state => state.WithToggleClearText(), cancellationToken);
 
     /// <summary>
     /// Alterna la bandera de pantalla negra (blackout).
     /// </summary>
-    public async Task<LiveState> ToggleBlackoutAsync(CancellationToken cancellationToken = default)
+    public Task<LiveState> ToggleBlackoutAsync(CancellationToken cancellationToken = default) =>
+        UpdateStateAsync(state => state.WithToggleBlackout(), cancellationToken);
+
+    /// <summary>
+    /// Alterna la bandera de logo/reposo.
+    /// </summary>
+    public Task<LiveState> ToggleLogoAsync(CancellationToken cancellationToken = default) =>
+        UpdateStateAsync(state => state.WithToggleLogo(), cancellationToken);
+
+    private async Task<LiveState> UpdateStateAsync(
+        Func<LiveState, LiveState> transition,
+        CancellationToken cancellationToken)
     {
         LiveState updated;
         lock (_sync)
         {
-            updated = _state with
-            {
-                Flags = _state.Flags with { Blackout = !_state.Flags.Blackout },
-            };
+            updated = transition(_state);
             _state = updated;
         }
 

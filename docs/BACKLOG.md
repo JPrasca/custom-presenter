@@ -7,7 +7,7 @@ El proyecto se desarrolla en **flujo continuo XP** (entregas incrementales peque
 ## Épica 1: Núcleo de Dominio, Estado en Vivo y Salida OBS (`localhost`)
 *Objetivo: Establecer la arquitectura hexagonal, el estado en vivo compartido y el micro-servidor transparente para OBS desde el inicio.*
 
-### HU-01: Gestión del estado en vivo (*LiveStateManager*) y comandos base
+### HU-01: Gestión del estado en vivo (*LiveStateManager*) y comandos base `[COMPLETADA]`
 - **Descripción:** Como operador, quiero que exista un gestor central de estado en vivo en C# (.NET 10 LTS) para que cualquier cambio de diapositiva o estado (*Clear*, *Blackout*, *Logo*) se propague de forma determinista y sin bloqueos.
 - **Criterios de Aceptación (Given-When-Then):**
   - **Given** que la aplicación inicia con un estado inicial vacío (*idle*), **When** se invoca el caso de uso `ProjectSlide` con un contenido válido, **Then** el `LiveState` se actualiza con la diapositiva activa y emite una notificación por el canal de difusión (`System.Threading.Channels` / suscriptores).
