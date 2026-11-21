@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { createInitialLiveState, isTextVisible } from '../../stores/live';
+import {
+  createDefaultThemeSettings,
+  createInitialLiveState,
+  isTextVisible,
+} from '../../stores/live';
 import type { LiveState } from '../../types/live';
 
 interface Props {
@@ -20,6 +24,23 @@ const emit = defineEmits<{
 const liveState = ref<LiveState>(createInitialLiveState());
 const activeState = computed(() => props.state ?? liveState.value);
 const textVisible = computed(() => isTextVisible(activeState.value));
+const projectorTheme = computed(
+  () =>
+    activeState.value.effectiveTheme?.projector ??
+    activeState.value.theme?.projector ??
+    createDefaultThemeSettings().projector
+);
+const containerStyle = computed(() => ({
+  backgroundColor: activeState.value.flags.blackout
+    ? '#000000'
+    : projectorTheme.value.backgroundColor,
+  color: projectorTheme.value.textColor,
+  fontFamily: projectorTheme.value.fontFamily,
+}));
+const slideTextStyle = computed(() => ({
+  fontSize: `${projectorTheme.value.fontSizePx}px`,
+  textAlign: projectorTheme.value.alignment.toLowerCase() as 'left' | 'center' | 'right',
+}));
 
 function handleKeydown(event: KeyboardEvent) {
   if (event.key !== 'Escape') {
@@ -55,10 +76,11 @@ onUnmounted(() => {
   <main
     class="projector"
     :class="{ blackout: activeState.flags.blackout }"
+    :style="containerStyle"
     tabindex="0"
     @keydown="handleKeydown"
   >
-    <p v-if="textVisible && activeState.currentSlide" class="slide-text">
+    <p v-if="textVisible && activeState.currentSlide" class="slide-text" :style="slideTextStyle">
       {{ activeState.currentSlide.text }}
     </p>
   </main>

@@ -1,5 +1,27 @@
 import { computed, readonly, ref } from 'vue';
-import type { EffectiveDisplayMode, LiveState, SlideContent } from '../types/live';
+import type { EffectiveDisplayMode, LiveState, SlideContent, ThemeSettings } from '../types/live';
+
+export function createDefaultThemeSettings(): ThemeSettings {
+  return {
+    projector: {
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+      fontSizePx: 64,
+      textColor: '#FFFFFF',
+      backgroundColor: '#0B0D12',
+      alignment: 'Center',
+    },
+    obs: {
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+      fontSizePx: 34,
+      textColor: '#FFFFFF',
+      boxBackgroundColor: '#0F1115D1',
+      position: 'Bottom',
+      marginHorizontalPx: 64,
+      marginVerticalPx: 48,
+      borderRadiusPx: 10,
+    },
+  };
+}
 
 export function createInitialLiveState(): LiveState {
   return {
@@ -9,6 +31,7 @@ export function createInitialLiveState(): LiveState {
       blackout: false,
       logo: false,
     },
+    theme: createDefaultThemeSettings(),
   };
 }
 

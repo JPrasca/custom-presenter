@@ -118,6 +118,12 @@ public static class SqliteSchemaInitializer
 
             CREATE INDEX IF NOT EXISTS idx_playlist_items_order
                 ON playlist_items(playlist_id, position);
+
+            CREATE TABLE IF NOT EXISTS themes (
+                target INTEGER PRIMARY KEY,
+                config_json TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
             """;
 
         await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);

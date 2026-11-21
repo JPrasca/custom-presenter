@@ -1,3 +1,5 @@
+using CustomPresenter.Domain.Themes;
+
 namespace CustomPresenter.Domain.Live;
 
 /// <summary>
@@ -59,9 +61,12 @@ public sealed record LiveFlags(
 /// </summary>
 public sealed record LiveState(
     SlideContent? CurrentSlide,
-    LiveFlags Flags)
+    LiveFlags Flags,
+    ThemeSettings? Theme = null)
 {
-    public static LiveState Empty { get; } = new(null, new LiveFlags());
+    public static LiveState Empty { get; } = new(null, new LiveFlags(), ThemeSettings.Default);
+
+    public ThemeSettings EffectiveTheme => Theme ?? ThemeSettings.Default;
 
     /// <summary>
     /// Calcula el modo efectivo respetando la jerarquía Blackout &gt; Logo &gt; ClearText &gt; Slide &gt; Idle.
@@ -96,11 +101,20 @@ public sealed record LiveState(
     /// </summary>
     public bool IsTextVisible => EffectiveMode == EffectiveDisplayMode.Slide;
 
-    public static LiveState FromSlide(SlideContent slide)
+    public static LiveState FromSlide(SlideContent slide, ThemeSettings? theme = null)
     {
         ArgumentNullException.ThrowIfNull(slide);
         slide.Validate();
-        return new LiveState(slide, new LiveFlags(ClearText: false, Blackout: false, Logo: false));
+        return new LiveState(
+            slide,
+            new LiveFlags(ClearText: false, Blackout: false, Logo: false),
+            theme ?? ThemeSettings.Default);
+    }
+
+    public LiveState WithTheme(ThemeSettings theme)
+    {
+        ArgumentNullException.ThrowIfNull(theme);
+        return this with { Theme = theme };
     }
 
     public LiveState WithToggleClearText() =>
