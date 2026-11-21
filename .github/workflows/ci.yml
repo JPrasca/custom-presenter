@@ -10,6 +10,9 @@ on:
       - main
       - master
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -24,10 +27,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout código
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Instalar .NET 10 SDK
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: '10.0.x'
 
@@ -61,10 +64,10 @@ jobs:
         working-directory: frontend
     steps:
       - name: Checkout código
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Instalar Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
           cache: 'npm'
@@ -90,3 +93,70 @@ jobs:
 
       - name: Auditar dependencias de producción (npm audit)
         run: npm audit --omit=dev --audit-level=moderate
+
+  security-sast-secrets:
+    name: Seguridad SAST y Secretos (Semgrep + Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout historial completo (para Gitleaks)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Detectar secretos con Gitleaks CLI
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.24.2/gitleaks_8.24.2_linux_x64.tar.gz \
+            | tar -xz -C "$HOME/.local/bin" gitleaks
+          "$HOME/.local/bin/gitleaks" detect --source . --redact --no-banner
+
+      - name: Instalar Semgrep CLI
+        run: python3 -m pip install --user --quiet semgrep
+
+      - name: Ejecutar SAST local con Semgrep (C#, TypeScript, OWASP)
+        env:
+          SEMGREP_SEND_METRICS: 'off'
+        run: |
+          "$HOME/.local/bin/semgrep" scan \
+            --config p/csharp \
+            --config p/typescript \
+            --config p/owasp-top-ten \
+            --error \
+            --exclude frontend/dist \
+            --exclude frontend/node_modules \
+            --exclude '**/bin/**' \
+            --exclude '**/obj/**'
+
+  security-codeql:
+    name: CodeQL SAST (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [csharp, javascript-typescript]
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Instalar .NET 10 SDK (para CodeQL C#)
+        if: matrix.language == 'csharp'
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Inicializar CodeQL
+        uses: github/codeql-action/init@aaf92c3279600a7c7217a1cd605774c6c791c6c3 # v3
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@aaf92c3279600a7c7217a1cd605774c6c791c6c3 # v3
+
+      - name: Analizar con CodeQL
+        uses: github/codeql-action/analyze@aaf92c3279600a7c7217a1cd605774c6c791c6c3 # v3
+        with:
+          category: "/language:${{ matrix.language }}"
