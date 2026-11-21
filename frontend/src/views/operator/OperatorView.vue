@@ -10,6 +10,7 @@ import {
   type BibleVerseItem,
   type BibleVersionItem,
   type MediaAssetDto,
+  type OnlineLyricsResult,
   type PlaylistDto,
   type SongItem,
 } from '../../services/presenterApi';
@@ -65,6 +66,8 @@ const songTitle = ref('');
 const songAuthor = ref('');
 const songKey = ref('');
 const songLyrics = ref('');
+const onlineLyricsQuery = ref('');
+const onlineLyricsResults = ref<OnlineLyricsResult[]>([]);
 
 const bibleVersions = ref<BibleVersionItem[]>([]);
 const selectedVersionId = ref('');
@@ -201,6 +204,24 @@ async function handleDeleteSong(id: string) {
     }
     songs.value = await presenterApi.listSongs(searchQuery.value);
   });
+}
+
+async function handleSearchOnlineLyrics() {
+  await runAction(async () => {
+    onlineLyricsResults.value = await presenterApi.searchOnlineLyrics(onlineLyricsQuery.value);
+    if (onlineLyricsResults.value.length === 0) {
+      statusNotice.value = 'No se encontraron letras en internet para esa búsqueda.';
+    }
+  });
+}
+
+function useOnlineLyricsResult(result: OnlineLyricsResult) {
+  editingSongId.value = null;
+  songTitle.value = result.trackName;
+  songAuthor.value = result.artistName;
+  songLyrics.value = result.formattedLyrics;
+  onlineLyricsResults.value = [];
+  statusNotice.value = 'Letra cargada y formateada por estrofas. Revisa y pulsa Guardar.';
 }
 
 async function handleProjectSong(song: SongItem) {
@@ -464,11 +485,43 @@ onMounted(() => {
 
       <div v-if="activeTab === 'songs'" data-testid="panel-songs" class="tab-panel">
         <div class="form-row">
+          <input
+            v-model="onlineLyricsQuery"
+            data-testid="online-lyrics-input"
+            placeholder="Buscar letra en internet (ej. Sublime Gracia)..."
+            @keydown.enter="handleSearchOnlineLyrics"
+          />
+          <button
+            type="button"
+            data-testid="online-lyrics-search-btn"
+            @click="handleSearchOnlineLyrics"
+          >
+            Buscar letra online
+          </button>
+        </div>
+        <ul v-if="onlineLyricsResults.length > 0" class="item-list">
+          <li v-for="(item, idx) in onlineLyricsResults" :key="`${item.trackName}-${idx}`">
+            <span>{{ item.trackName }} — {{ item.artistName }}</span>
+            <button
+              type="button"
+              :data-testid="`online-lyrics-use-${idx}`"
+              @click="useOnlineLyricsResult(item)"
+            >
+              Usar letra
+            </button>
+          </li>
+        </ul>
+        <div class="form-row">
           <input v-model="songTitle" data-testid="song-title-input" placeholder="Título" />
           <input v-model="songAuthor" placeholder="Autor" />
           <input v-model="songKey" placeholder="Tono" />
         </div>
-        <textarea v-model="songLyrics" rows="4" placeholder="Letra por estrofas..." />
+        <textarea
+          v-model="songLyrics"
+          data-testid="song-lyrics-input"
+          rows="4"
+          placeholder="Letra por estrofas..."
+        />
         <div class="form-row">
           <button type="button" data-testid="song-save-btn" @click="handleSaveSong">
             {{ editingSongId ? 'Actualizar canción' : 'Guardar canción' }}

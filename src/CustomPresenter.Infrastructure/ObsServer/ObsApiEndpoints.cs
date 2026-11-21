@@ -46,6 +46,20 @@ internal static class ObsApiEndpoints
             return Results.Json(songs, jsonOptions);
         });
 
+        app.MapGet("/api/songs/lyrics-search", async (string? q, CancellationToken ct) =>
+        {
+            try
+            {
+                var results = await services.Songs.SearchOnlineLyricsAsync(q ?? string.Empty, ct)
+                    .ConfigureAwait(false);
+                return Results.Json(results, jsonOptions);
+            }
+            catch (DomainException ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
         app.MapPost("/api/songs", (HttpContext ctx) => ExecuteOperatorAsync(ctx, isAuthorized, jsonOptions, async () =>
         {
             var req = await ReadJsonAsync<CreateSongRequest>(ctx, jsonOptions).ConfigureAwait(false);

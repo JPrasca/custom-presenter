@@ -9,6 +9,12 @@ export interface SongItem {
   slides: { index: number; label: string; text: string }[];
 }
 
+export interface OnlineLyricsResult {
+  trackName: string;
+  artistName: string;
+  formattedLyrics: string;
+}
+
 export interface BibleVersionItem {
   id: string;
   name: string;
@@ -101,6 +107,8 @@ function jsonMutate<T>(url: string, method: 'POST' | 'PUT' | 'DELETE', body?: un
 export const presenterApi = {
   listSongs: (q = '') =>
     requestJson<SongItem[]>(`/api/songs${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+  searchOnlineLyrics: (q: string) =>
+    requestJson<OnlineLyricsResult[]>(`/api/songs/lyrics-search?q=${encodeURIComponent(q)}`),
   createSong: (title: string, rawLyrics: string, author?: string, musicalKey?: string) =>
     jsonMutate<SongItem>('/api/songs', 'POST', { title, rawLyrics, author, musicalKey }),
   updateSong: (
