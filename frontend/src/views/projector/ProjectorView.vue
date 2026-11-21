@@ -1,4 +1,4 @@
-<script setup lang = "ts" >
+<script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { createInitialLiveState, isTextVisible } from '../../stores/live';
 import type { LiveState } from '../../types/live';
@@ -51,36 +51,36 @@ onUnmounted(() => {
 });
 </script>
 
-  < template >
-<main
+<template>
+  <main
     class="projector"
-    : class="{ blackout: activeState.flags.blackout }"
-tabindex = "0"
-@keydown="handleKeydown"
+    :class="{ blackout: activeState.flags.blackout }"
+    tabindex="0"
+    @keydown="handleKeydown"
   >
-  <p v -if= "textVisible && activeState.currentSlide" class="slide-text" >
-    {{ activeState.currentSlide.text }}
-</p>
+    <p v-if="textVisible && activeState.currentSlide" class="slide-text">
+      {{ activeState.currentSlide.text }}
+    </p>
   </main>
-  </template>
+</template>
 
-  < style scoped >
+<style scoped>
 .projector {
   width: 100vw;
   height: 100vh;
   display: flex;
-  align - items: center;
-  justify - content: center;
-  background - color: #000000;
+  align-items: center;
+  justify-content: center;
+  background-color: #000000;
   color: #ffffff;
-  text - align: center;
+  text-align: center;
   padding: 4rem;
   outline: none;
 }
 
-.slide - text {
-  white - space: pre - line;
-  font - size: 3rem;
-  line - height: 1.3;
+.slide-text {
+  white-space: pre-line;
+  font-size: 3rem;
+  line-height: 1.3;
 }
 </style>
