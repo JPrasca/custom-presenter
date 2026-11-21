@@ -349,19 +349,27 @@ internal static class ObsApiEndpoints
 
         app.MapGet("/", ServeIndex);
         app.MapGet("/projector", ServeIndex);
+
+        var assetsRoot = Path.GetFullPath(Path.Combine(rootFull, "assets"));
+        var assetMap = Directory.Exists(assetsRoot)
+            ? Directory.EnumerateFiles(assetsRoot, "*", SearchOption.AllDirectories)
+                .Select(path => Path.GetFullPath(path))
+                .Where(fullPath => fullPath.StartsWith(assetsRoot + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+                .ToDictionary(
+                    fullPath => Path.GetRelativePath(assetsRoot, fullPath).Replace('\\', '/'),
+                    fullPath => fullPath,
+                    StringComparer.Ordinal)
+            : new Dictionary<string, string>(StringComparer.Ordinal);
+
         app.MapGet("/assets/{**filePath}", (string filePath) =>
         {
-            var relative = filePath.Replace('/', Path.DirectorySeparatorChar);
-            var assetsRoot = Path.GetFullPath(Path.Combine(rootFull, "assets"));
-            var candidate = Path.GetFullPath(Path.Combine(assetsRoot, relative));
-
-            if (!candidate.StartsWith(assetsRoot + Path.DirectorySeparatorChar, StringComparison.Ordinal)
-                || !File.Exists(candidate))
+            if (string.IsNullOrWhiteSpace(filePath)
+                || !assetMap.TryGetValue(filePath.TrimStart('/'), out var safePhysicalPath))
             {
                 return Results.NotFound();
             }
 
-            return Results.File(candidate, GetMimeType(candidate));
+            return Results.File(safePhysicalPath, GetMimeType(safePhysicalPath));
         });
     }
 
