@@ -178,14 +178,18 @@ public sealed class SqliteBibleRepository : IBibleRepository
     {
         ArgumentNullException.ThrowIfNull(reference);
 
-        int? resolvedBookNumber = reference.CanonicalBookNumber;
-        if (resolvedBookNumber is null)
+        var books = await ListBooksAsync(versionId, cancellationToken).ConfigureAwait(false);
+        var targetKey = BibleReferenceParser.NormalizeBookKey(reference.BookQuery);
+
+        var matchedByName = books.FirstOrDefault(b =>
+            BibleReferenceParser.NormalizeBookKey(b.BookName)
+                .StartsWith(targetKey, StringComparison.Ordinal));
+
+        int? resolvedBookNumber = matchedByName?.BookNumber;
+        if (resolvedBookNumber is null && reference.CanonicalBookNumber is not null)
         {
-            var books = await ListBooksAsync(versionId, cancellationToken).ConfigureAwait(false);
-            var targetKey = BibleReferenceParser.NormalizeBookKey(reference.BookQuery);
             resolvedBookNumber = books
-                .FirstOrDefault(b => BibleReferenceParser.NormalizeBookKey(b.BookName)
-                    .StartsWith(targetKey, StringComparison.Ordinal))
+                .FirstOrDefault(b => b.BookNumber == reference.CanonicalBookNumber.Value)
                 ?.BookNumber;
         }
 
