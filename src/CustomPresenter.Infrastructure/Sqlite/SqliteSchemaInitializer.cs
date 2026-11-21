@@ -1,7 +1,7 @@
 namespace CustomPresenter.Infrastructure.Sqlite;
 
 /// <summary>
-/// Inicializador del esquema relacional SQLite para canciones y diapositivas.
+/// Inicializador del esquema relacional SQLite e índice FTS5 para canciones y diapositivas.
 /// </summary>
 public static class SqliteSchemaInitializer
 {
@@ -35,6 +35,19 @@ public static class SqliteSchemaInitializer
             );
 
             CREATE INDEX IF NOT EXISTS idx_songs_title ON songs(title);
+
+            CREATE VIRTUAL TABLE IF NOT EXISTS songs_fts USING fts5(
+                song_id UNINDEXED,
+                title,
+                author,
+                raw_lyrics,
+                tokenize='unicode61 remove_diacritics 2'
+            );
+
+            INSERT INTO songs_fts(song_id, title, author, raw_lyrics)
+            SELECT id, title, COALESCE(author, ''), raw_lyrics
+            FROM songs
+            WHERE id NOT IN (SELECT song_id FROM songs_fts);
             """;
 
         await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);

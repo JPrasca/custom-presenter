@@ -68,7 +68,7 @@ El proyecto se desarrolla en **flujo continuo XP** (entregas incrementales peque
   - Unitarias: algoritmo de división de estrofas en diapositivas (manejo de líneas vacías múltiples, espacios y límites).
   - Integración: CRUD completo contra `Microsoft.Data.Sqlite` en memoria/temporal.
 
-### HU-06: Búsqueda instantánea FTS5 e importación de canciones (TXT/JSON)
+### HU-06: Búsqueda instantánea FTS5 e importación de canciones (TXT/JSON) `[COMPLETADA]`
 - **Descripción:** Como operador, quiero buscar canciones por título o fragmento de letra en milisegundos e importar canciones desde archivos `.txt` o `.json`.
 - **Criterios de Aceptación (Given-When-Then):**
   - **Given** una biblioteca con canciones indexadas en SQLite FTS5, **When** el operador escribe palabras clave del título o coro, **Then** obtiene los resultados ordenados en `< 30 ms`.
