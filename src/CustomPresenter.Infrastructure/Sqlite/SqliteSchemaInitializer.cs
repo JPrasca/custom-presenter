@@ -1,7 +1,7 @@
 namespace CustomPresenter.Infrastructure.Sqlite;
 
 /// <summary>
-/// Inicializador del esquema relacional SQLite e índice FTS5 para canciones y diapositivas.
+/// Inicializador del esquema relacional SQLite e índices FTS5 para canciones y biblias.
 /// </summary>
 public static class SqliteSchemaInitializer
 {
@@ -48,6 +48,36 @@ public static class SqliteSchemaInitializer
             SELECT id, title, COALESCE(author, ''), raw_lyrics
             FROM songs
             WHERE id NOT IN (SELECT song_id FROM songs_fts);
+
+            CREATE TABLE IF NOT EXISTS bible_versions (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                abbreviation TEXT NOT NULL,
+                imported_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS bible_verses (
+                version_id TEXT NOT NULL,
+                book_number INTEGER NOT NULL,
+                book_name TEXT NOT NULL,
+                chapter INTEGER NOT NULL,
+                verse INTEGER NOT NULL,
+                verse_text TEXT NOT NULL,
+                PRIMARY KEY (version_id, book_number, chapter, verse),
+                FOREIGN KEY (version_id) REFERENCES bible_versions(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_bible_verses_lookup
+                ON bible_verses(version_id, book_name, chapter, verse);
+
+            CREATE VIRTUAL TABLE IF NOT EXISTS bible_verses_fts USING fts5(
+                version_id UNINDEXED,
+                book_name,
+                chapter UNINDEXED,
+                verse UNINDEXED,
+                verse_text,
+                tokenize='unicode61 remove_diacritics 2'
+            );
             """;
 
         await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
