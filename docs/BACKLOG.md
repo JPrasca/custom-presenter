@@ -82,7 +82,7 @@ El proyecto se desarrolla en **flujo continuo XP** (entregas incrementales peque
 ## Épica 4: Biblias y Textos Predefinidos (Anuncios)
 *Objetivo: Incorporar búsqueda rápida de pasajes bíblicos y bloques de anuncios listos para proyectar.*
 
-### HU-07: Importación de Biblias (XML OpenSong/Zefania o JSON)
+### HU-07: Importación de Biblias (XML OpenSong/Zefania o JSON) `[COMPLETADA]`
 - **Descripción:** Como operador, quiero importar archivos de Biblia locales hacia SQLite para no depender de internet durante los eventos.
 - **Criterios de Aceptación (Given-When-Then):**
   - **Given** un archivo XML (OpenSong/Zefania) o JSON válido `< 50 MB`, **When** se ejecuta la importación, **Then** todos los libros, capítulos y versículos se almacenan en SQLite e indexan en FTS5 en una única transacción.

@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using CustomPresenter.Domain.Live;
@@ -11,10 +10,6 @@ namespace CustomPresenter.Infrastructure.Importers;
 /// </summary>
 public sealed partial class SongImporter : ISongImporter
 {
-    private static readonly Encoding StrictUtf8 = new UTF8Encoding(
-        encoderShouldEmitUTF8Identifier: false,
-        throwOnInvalidBytes: true);
-
     [GeneratedRegex(@"(?m)^(?:---|===)\s*$")]
     private static partial Regex TxtSongSeparatorRegex();
 
@@ -31,70 +26,21 @@ public sealed partial class SongImporter : ISongImporter
             throw new DomainException("Debe especificar el nombre del archivo a importar.");
         }
 
-        if (reportedSizeBytes > SongImportLimits.MaxFileSizeBytes)
-        {
-            throw new DomainException(
-                $"El archivo excede el tamaño máximo permitido de {SongImportLimits.MaxFileSizeBytes / (1024 * 1024)} MB.");
-        }
-
         var extension = Path.GetExtension(fileName).ToLowerInvariant();
         if (extension is not ".txt" and not ".json")
         {
             throw new DomainException("Formato de archivo no soportado. Use archivos .txt o .json.");
         }
 
-        var bytes = await ReadBoundedBytesAsync(stream, cancellationToken).ConfigureAwait(false);
-        string content;
-        try
-        {
-            content = StrictUtf8.GetString(bytes);
-        }
-        catch (DecoderFallbackException)
-        {
-            throw new DomainException("El archivo no tiene una codificación UTF-8 válida.");
-        }
+        var content = await StreamReadHelper.ReadUtf8BoundedAsync(
+            stream,
+            reportedSizeBytes,
+            SongImportLimits.MaxFileSizeBytes,
+            cancellationToken).ConfigureAwait(false);
 
         return extension == ".json"
             ? ParseJson(content)
             : ParseTxt(content);
-    }
-
-    private static async Task<byte[]> ReadBoundedBytesAsync(
-        Stream stream,
-        CancellationToken cancellationToken)
-    {
-        var maxAllowedPlusOne = SongImportLimits.MaxFileSizeBytes + 1;
-        using var buffer = new MemoryStream();
-        var chunk = new byte[81920];
-        var totalRead = 0;
-
-        while (true)
-        {
-            var toRead = Math.Min(chunk.Length, maxAllowedPlusOne - totalRead);
-            if (toRead <= 0)
-            {
-                throw new DomainException(
-                    $"El archivo excede el tamaño máximo permitido de {SongImportLimits.MaxFileSizeBytes / (1024 * 1024)} MB.");
-            }
-
-            var read = await stream.ReadAsync(chunk.AsMemory(0, toRead), cancellationToken)
-                .ConfigureAwait(false);
-            if (read == 0)
-            {
-                break;
-            }
-
-            totalRead += read;
-            if (totalRead > SongImportLimits.MaxFileSizeBytes)
-            {
-                throw new DomainException(
-                    $"El archivo excede el tamaño máximo permitido de {SongImportLimits.MaxFileSizeBytes / (1024 * 1024)} MB.");
-            }
-
-            buffer.Write(chunk, 0, read);
-        }
-
-        return buffer.ToArray();
     }
 
     private static List<Song> ParseTxt(string content)
