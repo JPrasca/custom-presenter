@@ -8,6 +8,7 @@ using CustomPresenter.Application.Songs;
 using CustomPresenter.Application.Themes;
 using CustomPresenter.Infrastructure.Backup;
 using CustomPresenter.Infrastructure.Importers;
+using CustomPresenter.Infrastructure.Lyrics;
 using CustomPresenter.Infrastructure.Media;
 using CustomPresenter.Infrastructure.ObsServer;
 using CustomPresenter.Infrastructure.Sqlite;
@@ -71,9 +72,10 @@ internal static class Program
         var mediaRepo = new SqliteMediaRepository(connectionString);
         var mediaStorage = new LocalMediaStorage(mediaRoot);
 
+        using var lyricsHttpClient = new HttpClient();
         var themeService = new ThemeService(themeRepo);
         var services = new PresenterServices(
-            new SongService(songRepo, new SongImporter()),
+            new SongService(songRepo, new SongImporter(), new LrclibLyricsClient(lyricsHttpClient)),
             new BibleImportService(bibleRepo, new BibleImporter()),
             new BibleSearchService(bibleRepo),
             new AnnouncementService(announcementRepo),

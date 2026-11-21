@@ -91,4 +91,58 @@ describe('Edición y eliminación de canciones en OperatorView (HU-17)', () => {
     ).toBe('');
     expect(wrapper.find('[data-testid="song-cancel-edit-btn"]').exists()).toBe(false);
   });
+
+  it('busca letras en internet y carga la letra formateada en el formulario', async () => {
+    // Arrange
+    vi.spyOn(presenterApi, 'listSongs').mockResolvedValue([]);
+    vi.spyOn(presenterApi, 'listBibleVersions').mockResolvedValue([]);
+    vi.spyOn(presenterApi, 'listAnnouncements').mockResolvedValue([]);
+    vi.spyOn(presenterApi, 'listPlaylists').mockResolvedValue([]);
+    vi.spyOn(presenterApi, 'getThemes').mockResolvedValue({
+      projector: {
+        fontFamily: 'Inter',
+        fontSizePx: 64,
+        textColor: '#FFFFFF',
+        backgroundColor: '#0B0D12',
+        alignment: 'Center',
+      },
+      obs: {
+        fontFamily: 'Inter',
+        fontSizePx: 34,
+        textColor: '#FFFFFF',
+        boxBackgroundColor: '#0F1115D1',
+        position: 'Bottom',
+        marginHorizontalPx: 64,
+        marginVerticalPx: 48,
+        borderRadiusPx: 10,
+      },
+    });
+    vi.spyOn(presenterApi, 'listMedia').mockResolvedValue([]);
+    vi.spyOn(presenterApi, 'searchOnlineLyrics').mockResolvedValue([
+      {
+        trackName: 'Cuán Grande Es Él',
+        artistName: 'Marco Barrientos',
+        formattedLyrics: 'Señor mi Dios\n\nCuán grande es Él',
+      },
+    ]);
+
+    const wrapper = mount(OperatorView, {
+      props: { store: createLiveStore() },
+    });
+    await flushPromises();
+
+    // Act
+    await wrapper.get('[data-testid="online-lyrics-input"]').setValue('Cuan grande es el');
+    await wrapper.get('[data-testid="online-lyrics-search-btn"]').trigger('click');
+    await flushPromises();
+    await wrapper.get('[data-testid="online-lyrics-use-0"]').trigger('click');
+
+    // Assert
+    expect(
+      (wrapper.get('[data-testid="song-title-input"]').element as HTMLInputElement).value
+    ).toBe('Cuán Grande Es Él');
+    expect(
+      (wrapper.get('[data-testid="song-lyrics-input"]').element as HTMLTextAreaElement).value
+    ).toBe('Señor mi Dios\n\nCuán grande es Él');
+  });
 });

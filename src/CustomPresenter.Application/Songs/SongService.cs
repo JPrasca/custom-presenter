@@ -10,12 +10,17 @@ public sealed class SongService
 {
     private readonly ISongRepository _repository;
     private readonly ISongImporter? _importer;
+    private readonly ILyricsLookupClient? _lyricsLookup;
 
-    public SongService(ISongRepository repository, ISongImporter? importer = null)
+    public SongService(
+        ISongRepository repository,
+        ISongImporter? importer = null,
+        ILyricsLookupClient? lyricsLookup = null)
     {
         ArgumentNullException.ThrowIfNull(repository);
         _repository = repository;
         _importer = importer;
+        _lyricsLookup = lyricsLookup;
     }
 
     public async Task<Song> CreateSongAsync(
@@ -98,6 +103,23 @@ public sealed class SongService
 
         await _repository.CreateBatchAsync(songs, cancellationToken).ConfigureAwait(false);
         return songs;
+    }
+
+    public Task<IReadOnlyList<LyricsSearchResult>> SearchOnlineLyricsAsync(
+        string query,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            throw new DomainException("Debe ingresar el nombre o artista de la canción a buscar.");
+        }
+
+        if (_lyricsLookup is null)
+        {
+            throw new DomainException("La búsqueda de letras en internet no está habilitada.");
+        }
+
+        return _lyricsLookup.SearchAsync(query.Trim(), cancellationToken);
     }
 
     public static IReadOnlyList<SlideContent> ToSlideContents(Song song)

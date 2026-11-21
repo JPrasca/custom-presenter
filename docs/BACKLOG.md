@@ -180,7 +180,7 @@ El proyecto se desarrolla en **flujo continuo XP** (entregas incrementales peque
   - Integración: `PUT /api/songs/{id}` y `DELETE /api/songs/{id}` en `ObsWebServer` + SQLite.
   - Frontend: pruebas Vitest de modo edición, guardado y reseteo al eliminar canción en edición.
 
-### HU-18: Búsqueda e importación de letras desde internet con auto-formateo de proyección
+### HU-18: Búsqueda e importación de letras desde internet con auto-formateo de proyección `[COMPLETADA]`
 - **Descripción:** Como operador, quiero buscar letras de canciones por nombre/artista desde internet y auto-formatearlas en estrofas legibles para proyectarlas rápidamente sin copiar y pegar manualmente.
 - **Criterios de Aceptación (Given-When-Then):**
   - **Given** conectividad a internet y un nombre de canción, **When** el operador busca la letra y selecciona un resultado, **Then** el backend consulta LRCLIB de forma acotada, limpia marcas de tiempo numéricas (`[mm:ss.xx]`) preservando encabezados (`[Coro]`) y divide bloques largos en estrofas de máximo 4 líneas listas para guardar y proyectar.
