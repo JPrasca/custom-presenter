@@ -36,7 +36,7 @@ El proyecto se desarrolla en **flujo continuo XP** (entregas incrementales peque
 ## Épica 2: Salida Nativa Multipantalla y Controles de Operador
 *Objetivo: Habilitar la proyección presencial en pantalla secundaria sin bordes y la interfaz base del operador.*
 
-### HU-03: Detección de monitores y ventana de Proyector Nativo sin bordes
+### HU-03: Detección de monitores y ventana de Proyector Nativo sin bordes `[COMPLETADA]`
 - **Descripción:** Como operador, quiero seleccionar un monitor conectado y abrir la salida presencial a pantalla completa sin bordes mediante Photino.NET para proyectar en el salón sin mostrar barras de ventana.
 - **Criterios de Aceptación (Given-When-Then):**
   - **Given** que hay uno o más monitores conectados, **When** el operador consulta las pantallas disponibles, **Then** recibe la lista con nombre, resolución y posición de cada monitor.
