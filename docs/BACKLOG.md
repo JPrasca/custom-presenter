@@ -91,7 +91,7 @@ El proyecto se desarrolla en **flujo continuo XP** (entregas incrementales peque
   - Unitarias/Integración: parsing e inserción transaccional de un fragmento de Biblia de prueba.
   - Seguridad: prueba con payload XXE / *Billion Laughs* verificando que es rechazado sin expansión ni consumo excesivo de memoria.
 
-### HU-08: Navegador y buscador de Biblia (Referencia + Texto)
+### HU-08: Navegador y buscador de Biblia (Referencia + Texto) `[COMPLETADA]`
 - **Descripción:** Como operador, quiero buscar versículos escribiendo una referencia (ej. `Juan 3:16`) o palabras clave y proyectarlos en un clic.
 - **Criterios de Aceptación (Given-When-Then):**
   - **Given** al menos una versión de Biblia importada, **When** el operador escribe `Salmos 23:1` o selecciona Libro/Capítulo/Versículo, **Then** se muestra el versículo exacto listo para proyectar en Proyector y OBS (incluyendo la cita como pie o encabezado).
