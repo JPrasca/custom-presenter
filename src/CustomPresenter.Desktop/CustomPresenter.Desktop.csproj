@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CustomPresenter.Domain\CustomPresenter.Domain.csproj" />
+    <ProjectReference Include="..\CustomPresenter.Application\CustomPresenter.Application.csproj" />
+    <ProjectReference Include="..\CustomPresenter.Infrastructure\CustomPresenter.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Photino.NET" Version="4.0.16" />
+  </ItemGroup>
+</Project>

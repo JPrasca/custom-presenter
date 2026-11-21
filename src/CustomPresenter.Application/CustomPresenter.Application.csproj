@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\CustomPresenter.Domain\CustomPresenter.Domain.csproj" />
+  </ItemGroup>
+</Project>
