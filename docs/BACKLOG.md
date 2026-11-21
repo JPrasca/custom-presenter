@@ -2,6 +2,8 @@
 
 El proyecto se desarrolla en **flujo continuo XP** (entregas incrementales pequeñas, verificables y ordenadas por valor y dependencia técnica). Cada Historia de Usuario debe implementarse con TDD, revisión de seguridad y pruebas automatizadas antes de pasar a la siguiente.
 
+> **Estándar obligatorio de pruebas (unitarias e integración):** todas las pruebas deben estructurarse explícitamente bajo el patrón **AAA** (`Arrange` / `Act` / `Assert`) y utilizar el patrón **Builder** para construir datos y escenarios de prueba de forma legible y mantenible.
+
 ---
 
 ## Épica 1: Núcleo de Dominio, Estado en Vivo y Salida OBS (`localhost`)
