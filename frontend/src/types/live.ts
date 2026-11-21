@@ -1,6 +1,12 @@
 export type EffectiveDisplayMode = 'Idle' | 'Slide' | 'ClearText' | 'Logo' | 'Blackout';
 export type TextAlignment = 'Left' | 'Center' | 'Right';
 export type LowerThirdPosition = 'Bottom' | 'Middle' | 'Top';
+export type MediaKind = 'Image' | 'Video';
+
+export interface BackgroundMediaReference {
+  id: string;
+  kind: MediaKind;
+}
 
 export interface ProjectorTheme {
   fontFamily: string;
@@ -44,4 +50,5 @@ export interface LiveState {
   flags: LiveFlags;
   theme?: ThemeSettings;
   effectiveTheme?: ThemeSettings;
+  backgroundMedia?: BackgroundMediaReference | null;
 }

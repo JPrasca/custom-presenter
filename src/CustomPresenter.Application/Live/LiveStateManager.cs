@@ -1,4 +1,5 @@
 using CustomPresenter.Domain.Live;
+using CustomPresenter.Domain.Media;
 using CustomPresenter.Domain.Ports;
 using CustomPresenter.Domain.Themes;
 
@@ -36,7 +37,9 @@ public sealed class LiveStateManager
     public Task<LiveState> ProjectSlideAsync(
         SlideContent slide,
         CancellationToken cancellationToken = default) =>
-        UpdateStateAsync(state => LiveState.FromSlide(slide, state.EffectiveTheme), cancellationToken);
+        UpdateStateAsync(
+            state => LiveState.FromSlide(slide, state.EffectiveTheme, state.BackgroundMedia),
+            cancellationToken);
 
     /// <summary>
     /// Actualiza los temas visuales activos y notifica en tiempo real sin perder la diapositiva.
@@ -48,6 +51,14 @@ public sealed class LiveStateManager
         ArgumentNullException.ThrowIfNull(theme);
         return UpdateStateAsync(state => state.WithTheme(theme), cancellationToken);
     }
+
+    /// <summary>
+    /// Asigna o limpia el fondo multimedia activo en el Proyector Nativo.
+    /// </summary>
+    public Task<LiveState> SetBackgroundMediaAsync(
+        BackgroundMediaReference? backgroundMedia,
+        CancellationToken cancellationToken = default) =>
+        UpdateStateAsync(state => state.WithBackgroundMedia(backgroundMedia), cancellationToken);
 
     /// <summary>
     /// Alterna la bandera de limpiar texto manteniendo la diapositiva activa.

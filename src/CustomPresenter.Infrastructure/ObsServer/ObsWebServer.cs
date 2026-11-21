@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using CustomPresenter.Application.Live;
 using CustomPresenter.Domain.Live;
+using CustomPresenter.Domain.Media;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
@@ -30,6 +31,8 @@ public sealed class ObsWebServer : IAsyncDisposable
     private readonly ObsServerOptions _options;
     private readonly LiveStateManager _liveStateManager;
     private readonly ChannelLiveBroadcaster _broadcaster;
+    private readonly IMediaRepository? _mediaRepository;
+    private readonly IMediaStorage? _mediaStorage;
     private readonly CancellationTokenSource _shutdownCts = new();
     private WebApplication? _app;
     private int _disposed;
@@ -37,7 +40,9 @@ public sealed class ObsWebServer : IAsyncDisposable
     public ObsWebServer(
         ObsServerOptions options,
         LiveStateManager liveStateManager,
-        ChannelLiveBroadcaster broadcaster)
+        ChannelLiveBroadcaster broadcaster,
+        IMediaRepository? mediaRepository = null,
+        IMediaStorage? mediaStorage = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(liveStateManager);
@@ -46,6 +51,8 @@ public sealed class ObsWebServer : IAsyncDisposable
         _options = options;
         _liveStateManager = liveStateManager;
         _broadcaster = broadcaster;
+        _mediaRepository = mediaRepository;
+        _mediaStorage = mediaStorage;
     }
 
     public IPEndPoint BoundEndpoint { get; private set; } = new(IPAddress.Loopback, 0);
@@ -76,7 +83,7 @@ public sealed class ObsWebServer : IAsyncDisposable
         {
             context.Response.Headers["X-Content-Type-Options"] = "nosniff";
             context.Response.Headers["Content-Security-Policy"] =
-                "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self' ws://127.0.0.1:*; frame-ancestors 'none'";
+                "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; media-src 'self'; connect-src 'self' ws://127.0.0.1:*; frame-ancestors 'none'";
             await next(context).ConfigureAwait(false);
         });
 
@@ -90,6 +97,7 @@ public sealed class ObsWebServer : IAsyncDisposable
         MapOperatorPost(app, "/api/live/clear", ct => _liveStateManager.ToggleClearTextAsync(ct));
         MapOperatorPost(app, "/api/live/blackout", ct => _liveStateManager.ToggleBlackoutAsync(ct));
         MapOperatorPost(app, "/api/live/logo", ct => _liveStateManager.ToggleLogoAsync(ct));
+        app.MapGet("/media/{id:guid}", HandleGetMediaAsync);
 
         await app.StartAsync(cancellationToken).ConfigureAwait(false);
         _app = app;
@@ -327,6 +335,30 @@ public sealed class ObsWebServer : IAsyncDisposable
         catch (WebSocketException)
         {
             await linkedCts.CancelAsync().ConfigureAwait(false);
+        }
+    }
+
+    private async Task<IResult> HandleGetMediaAsync(Guid id, CancellationToken cancellationToken)
+    {
+        if (_mediaRepository is null || _mediaStorage is null)
+        {
+            return Results.NotFound();
+        }
+
+        var asset = await _mediaRepository.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
+        if (asset is null)
+        {
+            return Results.NotFound();
+        }
+
+        try
+        {
+            var safePath = _mediaStorage.ResolveSafeFilePath(asset);
+            return Results.File(safePath, asset.ContentType, enableRangeProcessing: true);
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or DomainException)
+        {
+            return Results.NotFound();
         }
     }
 }
