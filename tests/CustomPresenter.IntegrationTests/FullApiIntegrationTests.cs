@@ -167,6 +167,20 @@ public sealed class FullApiIntegrationTests : IAsyncLifetime
 
         var importBibleRes = await http.PostAsync("/api/bibles/import", bibleMultipart);
         Assert.Equal(HttpStatusCode.OK, importBibleRes.StatusCode);
+        var importedVersion = await importBibleRes.Content.ReadFromJsonAsync<IdDto>();
+        Assert.NotNull(importedVersion);
+
+        var booksRes = await http.GetAsync($"/api/bibles/{importedVersion.Id:D}/books");
+        Assert.Equal(HttpStatusCode.OK, booksRes.StatusCode);
+        var booksBody = await booksRes.Content.ReadAsStringAsync();
+        Assert.Contains("Salmos", booksBody, StringComparison.Ordinal);
+
+        var chapterRes = await http.GetAsync($"/api/bibles/{importedVersion.Id:D}/books/1/chapters/23");
+        Assert.Equal(HttpStatusCode.OK, chapterRes.StatusCode);
+        var chapterVerses = await chapterRes.Content.ReadFromJsonAsync<CustomPresenter.Domain.Bibles.BibleVerse[]>();
+        Assert.NotNull(chapterVerses);
+        Assert.Single(chapterVerses);
+        Assert.Contains("Jehová es mi pastor", chapterVerses[0].Text, StringComparison.Ordinal);
 
         // Act - Playlist
         var createPlRes = await http.PostAsJsonAsync("/api/playlists", new { name = "Domingo" });

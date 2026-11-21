@@ -90,6 +90,17 @@ internal static class ObsApiEndpoints
         app.MapGet("/api/bibles/versions", async (CancellationToken ct) =>
             Results.Json(await services.BibleImport.ListVersionsAsync(ct).ConfigureAwait(false), jsonOptions));
 
+        app.MapGet("/api/bibles/{versionId:guid}/books", async (Guid versionId, CancellationToken ct) =>
+            Results.Json(await services.BibleSearch.ListBooksAsync(versionId, ct).ConfigureAwait(false), jsonOptions));
+
+        app.MapGet(
+            "/api/bibles/{versionId:guid}/books/{bookNumber:int}/chapters/{chapter:int}",
+            async (Guid versionId, int bookNumber, int chapter, CancellationToken ct) =>
+                Results.Json(
+                    await services.BibleSearch.GetChapterVersesAsync(versionId, bookNumber, chapter, ct)
+                        .ConfigureAwait(false),
+                    jsonOptions));
+
         app.MapGet("/api/bibles/search", async (Guid versionId, string? q, CancellationToken ct) =>
             Results.Json(
                 await services.BibleSearch.SearchAsync(versionId, q ?? string.Empty, 50, ct).ConfigureAwait(false),

@@ -163,3 +163,11 @@ El proyecto se desarrolla en **flujo continuo XP** (entregas incrementales peque
 - **Pruebas requeridas:**
   - Unitarias: configuración segura de enlace de red en `ObsServerOptions` para modo contenedor.
   - Integración / Smoke: build de `Dockerfile` y verificación de arranque del host en modo headless.
+
+### HU-16: Navegación Rápida Bíblica (Autocompletado y Tabla Periódica) `[COMPLETADA]`
+- **Descripción:** Como operador, quiero navegar por los libros, capítulos y versículos mediante autocompletado en el buscador o una vista tipo "Tabla Periódica" (estilo Holyrics) para proyectar citas bíblicas en vivo con la mínima cantidad de teclas o clics.
+- **Criterios de Aceptación (Given-When-Then):**
+  - **Given** al menos una versión de Biblia importada, **When** el operador escribe parte del nombre de un libro o abre la vista "Tabla Periódica", **Then** ve sugerencias de libros coincidentes o los 66 libros agrupados por bloque bíblico, y al elegir libro y capítulo se cargan todos sus versículos listos para proyectar y avanzar secuencialmente.
+- **Pruebas requeridas:**
+  - Integración: endpoints `GET /api/bibles/{versionId}/books` y `GET /api/bibles/{versionId}/books/{bookNumber}/chapters/{chapter}`.
+  - Frontend: pruebas Vitest de autocompletado de libros y flujo de 3 clics en la Tabla Periódica (`Libro` → `Capítulo` → `Versículo`).

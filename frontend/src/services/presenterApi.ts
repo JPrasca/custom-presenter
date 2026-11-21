@@ -14,6 +14,12 @@ export interface BibleVersionItem {
   abbreviation: string;
 }
 
+export interface BibleBookSummaryItem {
+  bookNumber: number;
+  bookName: string;
+  chapterCount: number;
+}
+
 export interface BibleVerseItem {
   versionId: string;
   bookNumber: number;
@@ -100,6 +106,12 @@ export const presenterApi = {
     jsonMutate<LiveState>(`/api/songs/${id}/project/${slideIndex}`, 'POST'),
 
   listBibleVersions: () => requestJson<BibleVersionItem[]>('/api/bibles/versions'),
+  listBibleBooks: (versionId: string) =>
+    requestJson<BibleBookSummaryItem[]>(`/api/bibles/${versionId}/books`),
+  getBibleChapterVerses: (versionId: string, bookNumber: number, chapter: number) =>
+    requestJson<BibleVerseItem[]>(
+      `/api/bibles/${versionId}/books/${bookNumber}/chapters/${chapter}`
+    ),
   searchBible: (versionId: string, q: string) =>
     requestJson<BibleVerseItem[]>(
       `/api/bibles/search?versionId=${encodeURIComponent(versionId)}&q=${encodeURIComponent(q)}`
