@@ -171,3 +171,19 @@ El proyecto se desarrolla en **flujo continuo XP** (entregas incrementales peque
 - **Pruebas requeridas:**
   - Integración: endpoints `GET /api/bibles/{versionId}/books` y `GET /api/bibles/{versionId}/books/{bookNumber}/chapters/{chapter}`.
   - Frontend: pruebas Vitest de autocompletado de libros y flujo de 3 clics en la Tabla Periódica (`Libro` → `Capítulo` → `Versículo`).
+
+### HU-17: Edición y eliminación de canciones desde API y UI Operador `[COMPLETADA]`
+- **Descripción:** Como operador, quiero editar o eliminar canciones ya registradas desde la pestaña Canciones para corregir letras, tonos o autores sin recrear la canción.
+- **Criterios de Aceptación (Given-When-Then):**
+  - **Given** una canción guardada en SQLite, **When** el operador pulsa Editar, modifica título/letra/tono y guarda (o la elimina), **Then** los cambios persisten en SQLite, se actualizan las diapositivas y si se elimina la canción en edición se resetea el formulario.
+- **Pruebas requeridas:**
+  - Integración: `PUT /api/songs/{id}` y `DELETE /api/songs/{id}` en `ObsWebServer` + SQLite.
+  - Frontend: pruebas Vitest de modo edición, guardado y reseteo al eliminar canción en edición.
+
+### HU-18: Búsqueda e importación de letras desde internet con auto-formateo de proyección
+- **Descripción:** Como operador, quiero buscar letras de canciones por nombre/artista desde internet y auto-formatearlas en estrofas legibles para proyectarlas rápidamente sin copiar y pegar manualmente.
+- **Criterios de Aceptación (Given-When-Then):**
+  - **Given** conectividad a internet y un nombre de canción, **When** el operador busca la letra y selecciona un resultado, **Then** el backend consulta LRCLIB de forma acotada, limpia marcas de tiempo numéricas (`[mm:ss.xx]`) preservando encabezados (`[Coro]`) y divide bloques largos en estrofas de máximo 4 líneas listas para guardar y proyectar.
+- **Pruebas requeridas:**
+  - Unitarias: `SongLyricsFormatter` (marcas de tiempo, preservación de `[Coro]`/`[Verso]`, división en bloques de 4 líneas).
+  - Integración: cliente LRCLIB (mock HTTP, manejo controlado de fallo offline sin romper la app) y endpoint `GET /api/songs/lyrics-search`.

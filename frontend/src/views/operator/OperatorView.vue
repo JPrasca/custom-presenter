@@ -60,6 +60,7 @@ const errorMessage = ref('');
 const statusNotice = ref('');
 
 const songs = ref<SongItem[]>([]);
+const editingSongId = ref<string | null>(null);
 const songTitle = ref('');
 const songAuthor = ref('');
 const songKey = ref('');
@@ -151,18 +152,53 @@ async function refreshLibraries() {
   }
 }
 
-async function handleCreateSong() {
+function resetSongForm() {
+  editingSongId.value = null;
+  songTitle.value = '';
+  songAuthor.value = '';
+  songKey.value = '';
+  songLyrics.value = '';
+}
+
+function startEditSong(song: SongItem) {
+  editingSongId.value = song.id;
+  songTitle.value = song.title;
+  songAuthor.value = song.author ?? '';
+  songKey.value = song.musicalKey ?? '';
+  songLyrics.value = song.rawLyrics ?? song.slides.map((s) => s.text).join('\n\n');
+}
+
+async function handleSaveSong() {
   await runAction(async () => {
-    await presenterApi.createSong(
-      songTitle.value,
-      songLyrics.value,
-      songAuthor.value || undefined,
-      songKey.value || undefined
-    );
-    songTitle.value = '';
-    songAuthor.value = '';
-    songKey.value = '';
-    songLyrics.value = '';
+    if (editingSongId.value) {
+      await presenterApi.updateSong(
+        editingSongId.value,
+        songTitle.value,
+        songLyrics.value,
+        songAuthor.value || undefined,
+        songKey.value || undefined
+      );
+      statusNotice.value = 'Canción actualizada.';
+    } else {
+      await presenterApi.createSong(
+        songTitle.value,
+        songLyrics.value,
+        songAuthor.value || undefined,
+        songKey.value || undefined
+      );
+      statusNotice.value = 'Canción guardada.';
+    }
+    resetSongForm();
+    songs.value = await presenterApi.listSongs(searchQuery.value);
+  });
+}
+
+async function handleDeleteSong(id: string) {
+  await runAction(async () => {
+    await presenterApi.deleteSong(id);
+    if (editingSongId.value === id) {
+      resetSongForm();
+    }
     songs.value = await presenterApi.listSongs(searchQuery.value);
   });
 }
@@ -428,16 +464,44 @@ onMounted(() => {
 
       <div v-if="activeTab === 'songs'" data-testid="panel-songs" class="tab-panel">
         <div class="form-row">
-          <input v-model="songTitle" placeholder="Título" />
+          <input v-model="songTitle" data-testid="song-title-input" placeholder="Título" />
           <input v-model="songAuthor" placeholder="Autor" />
           <input v-model="songKey" placeholder="Tono" />
         </div>
-        <textarea v-model="songLyrics" rows="3" placeholder="Letra por estrofas..." />
-        <button type="button" @click="handleCreateSong">Guardar canción</button>
+        <textarea v-model="songLyrics" rows="4" placeholder="Letra por estrofas..." />
+        <div class="form-row">
+          <button type="button" data-testid="song-save-btn" @click="handleSaveSong">
+            {{ editingSongId ? 'Actualizar canción' : 'Guardar canción' }}
+          </button>
+          <button
+            v-if="editingSongId"
+            type="button"
+            data-testid="song-cancel-edit-btn"
+            @click="resetSongForm"
+          >
+            Cancelar edición
+          </button>
+        </div>
         <ul class="item-list">
           <li v-for="song in songs" :key="song.id">
             <span>{{ song.title }}</span>
-            <button type="button" @click="handleProjectSong(song)">Proyectar</button>
+            <div class="form-row">
+              <button type="button" @click="handleProjectSong(song)">Proyectar</button>
+              <button
+                type="button"
+                :data-testid="`song-edit-${song.id}`"
+                @click="startEditSong(song)"
+              >
+                Editar
+              </button>
+              <button
+                type="button"
+                :data-testid="`song-delete-${song.id}`"
+                @click="handleDeleteSong(song.id)"
+              >
+                Eliminar
+              </button>
+            </div>
           </li>
         </ul>
       </div>
