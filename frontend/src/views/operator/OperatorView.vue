@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
+import BibleNavigator from '../../components/BibleNavigator.vue';
 import StatusBadge from '../../components/StatusBadge.vue';
 import { useOperatorShortcuts } from '../../composables/useOperatorShortcuts';
 import {
   presenterApi,
   type AnnouncementItem,
+  type BibleBookSummaryItem,
   type BibleVerseItem,
   type BibleVersionItem,
   type MediaAssetDto,
@@ -65,11 +67,9 @@ const songLyrics = ref('');
 
 const bibleVersions = ref<BibleVersionItem[]>([]);
 const selectedVersionId = ref('');
+const bibleBooks = ref<BibleBookSummaryItem[]>([]);
 const bibleQuery = ref('');
 const bibleVerses = ref<BibleVerseItem[]>([]);
-const bibleImportName = ref('');
-const bibleImportAbbr = ref('');
-const bibleFile = ref<File | null>(null);
 
 const announcements = ref<AnnouncementItem[]>([]);
 const announcementTitle = ref('');
@@ -189,27 +189,58 @@ async function handleSearchBible() {
   });
 }
 
-async function handleImportBible() {
-  if (!bibleFile.value) {
+async function refreshBibleBooks(versionId: string) {
+  if (!versionId || typeof fetch === 'undefined') {
+    bibleBooks.value = [];
+    return;
+  }
+  try {
+    bibleBooks.value = await presenterApi.listBibleBooks(versionId);
+  } catch {
+    bibleBooks.value = [];
+  }
+}
+
+watch(selectedVersionId, (versionId) => {
+  void refreshBibleBooks(versionId);
+});
+
+async function handleLoadChapter(bookNumber: number, chapter: number) {
+  if (!selectedVersionId.value) {
     return;
   }
   await runAction(async () => {
-    await presenterApi.importBibleXml(
-      bibleImportName.value,
-      bibleImportAbbr.value,
-      bibleFile.value!
+    bibleVerses.value = await presenterApi.getBibleChapterVerses(
+      selectedVersionId.value,
+      bookNumber,
+      chapter
     );
-    bibleImportName.value = '';
-    bibleImportAbbr.value = '';
+  });
+}
+
+async function handleImportBible(name: string, abbr: string, file: File) {
+  await runAction(async () => {
+    await presenterApi.importBibleXml(name, abbr, file);
     bibleVersions.value = await presenterApi.listBibleVersions();
     if (bibleVersions.value.length > 0) {
       selectedVersionId.value = bibleVersions.value[0].id;
+      await refreshBibleBooks(selectedVersionId.value);
     }
   });
 }
 
 async function handleProjectBibleVerse(verse: BibleVerseItem) {
   const version = bibleVersions.value.find((v) => v.id === verse.versionId);
+  const abbr = version?.abbreviation ? ` (${version.abbreviation})` : '';
+  const chapterSlides: SlideContent[] = bibleVerses.value.map((item) => ({
+    id: `${item.versionId}:${item.bookNumber}:${item.chapter}:${item.verse}`,
+    title: `${item.bookName} ${item.chapter}:${item.verse}${abbr}`,
+    text: item.text,
+    reference: `${item.bookName} ${item.chapter}:${item.verse}${abbr}`,
+  }));
+  if (chapterSlides.length > 0) {
+    activeStore.setSlides(chapterSlides);
+  }
   await runAction(async () => {
     const state = await presenterApi.projectBibleVerse(verse, version?.abbreviation ?? '');
     await activeStore.syncState(state);
@@ -411,33 +442,20 @@ onMounted(() => {
         </ul>
       </div>
 
-      <div v-else-if="activeTab === 'bibles'" data-testid="panel-bibles" class="tab-panel">
-        <div class="form-row">
-          <select v-model="selectedVersionId">
-            <option v-for="v in bibleVersions" :key="v.id" :value="v.id">
-              {{ v.abbreviation }} - {{ v.name }}
-            </option>
-          </select>
-          <input v-model="bibleQuery" placeholder="Ej. Salmos 23:1 o palabra..." />
-          <button type="button" @click="handleSearchBible">Buscar</button>
-        </div>
-        <div class="form-row">
-          <input v-model="bibleImportName" placeholder="Nombre versión" />
-          <input v-model="bibleImportAbbr" placeholder="Abrev." />
-          <input
-            type="file"
-            accept=".xml"
-            @change="(e) => (bibleFile = (e.target as HTMLInputElement).files?.[0] ?? null)"
-          />
-          <button type="button" @click="handleImportBible">Importar XML</button>
-        </div>
-        <ul class="item-list">
-          <li v-for="v in bibleVerses" :key="`${v.bookNumber}-${v.chapter}-${v.verse}`">
-            <span>{{ v.bookName }} {{ v.chapter }}:{{ v.verse }} — {{ v.text }}</span>
-            <button type="button" @click="handleProjectBibleVerse(v)">Proyectar</button>
-          </li>
-        </ul>
-      </div>
+      <BibleNavigator
+        v-else-if="activeTab === 'bibles'"
+        :versions="bibleVersions"
+        :selected-version-id="selectedVersionId"
+        :books="bibleBooks"
+        :verses="bibleVerses"
+        :query="bibleQuery"
+        @update:selected-version-id="(v) => (selectedVersionId = v)"
+        @update:query="(q) => (bibleQuery = q)"
+        @search="handleSearchBible"
+        @load-chapter="handleLoadChapter"
+        @project-verse="handleProjectBibleVerse"
+        @import-bible="handleImportBible"
+      />
 
       <div
         v-else-if="activeTab === 'announcements'"
