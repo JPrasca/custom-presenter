@@ -1,3 +1,5 @@
+export type EffectiveDisplayMode = 'Idle' | 'Slide' | 'ClearText' | 'Logo' | 'Blackout';
+
 export interface SlideContent {
   id: string;
   title: string;
