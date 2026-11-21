@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { createInitialLiveState, isTextVisible } from '../../stores/live';
+import {
+  createDefaultThemeSettings,
+  createInitialLiveState,
+  isTextVisible,
+} from '../../stores/live';
 import type { LiveState } from '../../types/live';
 
 interface Props {
@@ -10,12 +14,44 @@ interface Props {
 const props = defineProps<Props>();
 const activeState = computed(() => props.state ?? createInitialLiveState());
 const textVisible = computed(() => isTextVisible(activeState.value));
+const obsTheme = computed(
+  () =>
+    activeState.value.effectiveTheme?.obs ??
+    activeState.value.theme?.obs ??
+    createDefaultThemeSettings().obs
+);
+
+const alignMap = {
+  Top: 'flex-start',
+  Middle: 'center',
+  Bottom: 'flex-end',
+} as const;
+
+const overlayStyle = computed(() => ({
+  alignItems: alignMap[obsTheme.value.position],
+  padding: `${obsTheme.value.marginVerticalPx}px ${obsTheme.value.marginHorizontalPx}px`,
+}));
+
+const lowerThirdStyle = computed(() => ({
+  backgroundColor: obsTheme.value.boxBackgroundColor,
+  color: obsTheme.value.textColor,
+  borderRadius: `${obsTheme.value.borderRadiusPx}px`,
+  fontFamily: obsTheme.value.fontFamily,
+}));
+
+const textStyle = computed(() => ({
+  fontSize: `${obsTheme.value.fontSizePx}px`,
+}));
 </script>
 
 <template>
-  <main class="obs-overlay">
-    <div v-if="textVisible && activeState.currentSlide" class="lower-third">
-      <p class="slide-text">{{ activeState.currentSlide.text }}</p>
+  <main class="obs-overlay" :style="overlayStyle">
+    <div
+      v-if="textVisible && activeState.currentSlide"
+      class="lower-third"
+      :style="lowerThirdStyle"
+    >
+      <p class="slide-text" :style="textStyle">{{ activeState.currentSlide.text }}</p>
     </div>
   </main>
 </template>

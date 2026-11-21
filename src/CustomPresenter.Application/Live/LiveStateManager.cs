@@ -1,5 +1,6 @@
 using CustomPresenter.Domain.Live;
 using CustomPresenter.Domain.Ports;
+using CustomPresenter.Domain.Themes;
 
 namespace CustomPresenter.Application.Live;
 
@@ -35,7 +36,18 @@ public sealed class LiveStateManager
     public Task<LiveState> ProjectSlideAsync(
         SlideContent slide,
         CancellationToken cancellationToken = default) =>
-        UpdateStateAsync(_ => LiveState.FromSlide(slide), cancellationToken);
+        UpdateStateAsync(state => LiveState.FromSlide(slide, state.EffectiveTheme), cancellationToken);
+
+    /// <summary>
+    /// Actualiza los temas visuales activos y notifica en tiempo real sin perder la diapositiva.
+    /// </summary>
+    public Task<LiveState> UpdateThemeAsync(
+        ThemeSettings theme,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(theme);
+        return UpdateStateAsync(state => state.WithTheme(theme), cancellationToken);
+    }
 
     /// <summary>
     /// Alterna la bandera de limpiar texto manteniendo la diapositiva activa.

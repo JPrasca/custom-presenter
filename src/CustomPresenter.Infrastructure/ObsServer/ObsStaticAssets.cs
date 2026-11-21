@@ -84,13 +84,35 @@ internal static class ObsStaticAssets
 
     public const string AppJs = """
         (() => {
+          const root = document.getElementById("overlay-root");
           const container = document.getElementById("lower-third");
           const textEl = document.getElementById("slide-text");
           const refEl = document.getElementById("slide-reference");
 
+          function applyObsTheme(theme) {
+            if (!root || !container || !textEl || !theme || !theme.obs) {
+              return;
+            }
+            const obs = theme.obs;
+            const alignMap = { Top: "flex-start", Middle: "center", Bottom: "flex-end" };
+            root.style.setProperty("align-items", alignMap[obs.position] || "flex-end");
+            root.style.setProperty("padding", `${obs.marginVerticalPx}px ${obs.marginHorizontalPx}px`);
+            container.style.setProperty("background-color", obs.boxBackgroundColor);
+            container.style.setProperty("color", obs.textColor);
+            container.style.setProperty("border-radius", `${obs.borderRadiusPx}px`);
+            container.style.setProperty("font-family", obs.fontFamily);
+            textEl.style.setProperty("font-size", `${obs.fontSizePx}px`);
+          }
+
           function render(state) {
             if (!container || !textEl || !refEl) {
               return;
+            }
+
+            if (state && state.effectiveTheme) {
+              applyObsTheme(state.effectiveTheme);
+            } else if (state && state.theme) {
+              applyObsTheme(state.theme);
             }
 
             const visible = Boolean(state && state.isTextVisible && state.currentSlide);

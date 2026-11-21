@@ -119,7 +119,7 @@ El proyecto se desarrolla en **flujo continuo XP** (entregas incrementales peque
 - **Pruebas requeridas:**
   - Integración: creación, reordenamiento y carga de playlist con referencias heterogéneas en SQLite.
 
-### HU-11: Temas visuales independientes (Proyector vs. OBS Lower Third)
+### HU-11: Temas visuales independientes (Proyector vs. OBS Lower Third) `[COMPLETADA]`
 - **Descripción:** Como operador, quiero personalizar por separado el estilo del proyector (fuente, tamaño, alineación, color) y el del overlay de OBS (posición inferior, caja semitransparente, márgenes) para que ambos se vean profesionales.
 - **Criterios de Aceptación (Given-When-Then):**
   - **Given** un panel de configuración de temas, **When** el operador modifica tamaño de fuente, color o posición del *lower third* y guarda, **Then** tanto el Proyector Nativo como la vista `/obs` actualizan su estilo en tiempo real sin reiniciar.
