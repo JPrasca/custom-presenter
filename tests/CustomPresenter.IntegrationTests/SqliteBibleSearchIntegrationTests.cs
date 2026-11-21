@@ -88,4 +88,34 @@ public sealed class SqliteBibleSearchIntegrationTests : IAsyncLifetime
         Assert.Equal(EffectiveDisplayMode.Slide, liveState.EffectiveMode);
         Assert.Equal("Salmos 23:1 (RVR60)", liveState.CurrentSlide?.Reference);
     }
+
+    [Fact]
+    public async Task SearchAsyncPorCitaEncuentraLibroEnBibliaParcialConBookNumberNoCanonico()
+    {
+        // Arrange
+        var repo = new SqliteBibleRepository(ConnectionString);
+        var importService = new BibleImportService(repo, new BibleImporter());
+        var searchService = new BibleSearchService(repo);
+
+        const string partialXml = """
+            <?xml version="1.0" encoding="utf-8"?>
+            <bible>
+              <b n="Salmos">
+                <c n="23">
+                  <v n="1">Jehová es mi pastor; nada me faltará.</v>
+                </c>
+              </b>
+            </bible>
+            """;
+
+        await using var stream = new MemoryStream(Encoding.UTF8.GetBytes(partialXml));
+        var imported = await importService.ImportBibleAsync(stream, "parcial.xml", stream.Length, "Parcial", "PAR");
+
+        // Act
+        var results = await searchService.SearchAsync(imported.Version.Id, "Salmos 23:1");
+
+        // Assert
+        Assert.Single(results);
+        Assert.Equal("Jehová es mi pastor; nada me faltará.", results[0].Text);
+    }
 }
