@@ -78,6 +78,24 @@ public static class SqliteSchemaInitializer
                 verse_text,
                 tokenize='unicode61 remove_diacritics 2'
             );
+
+            CREATE TABLE IF NOT EXISTS announcements (
+                id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                raw_body TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS announcement_slides (
+                announcement_id TEXT NOT NULL,
+                slide_index INTEGER NOT NULL,
+                slide_text TEXT NOT NULL,
+                PRIMARY KEY (announcement_id, slide_index),
+                FOREIGN KEY (announcement_id) REFERENCES announcements(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_announcements_title ON announcements(title);
             """;
 
         await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);

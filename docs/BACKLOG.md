@@ -100,7 +100,7 @@ El proyecto se desarrolla en **flujo continuo XP** (entregas incrementales peque
   - Unitarias: parser de referencias bíblicas (abreviaturas, rangos como `1-3`, acentos).
   - Integración: consulta por referencia exacta y búsqueda FTS5 en SQLite.
 
-### HU-09: Gestión y proyección de Anuncios / Textos predefinidos
+### HU-09: Gestión y proyección de Anuncios / Textos predefinidos `[COMPLETADA]`
 - **Descripción:** Como operador, quiero crear y guardar textos libres o anuncios recurrentes (ej. bienvenida, horarios, avisos) para proyectarlos rápidamente durante el evento.
 - **Criterios de Aceptación (Given-When-Then):**
   - **Given** un título y uno o más bloques de texto, **When** el operador guarda el anuncio, **Then** queda persistido en SQLite y disponible para agregarse a la playlist o proyectarse directamente.
