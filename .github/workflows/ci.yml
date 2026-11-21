@@ -27,10 +27,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout código
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Instalar .NET 10 SDK
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: '10.0.x'
 
@@ -64,10 +64,10 @@ jobs:
         working-directory: frontend
     steps:
       - name: Checkout código
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Instalar Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
           cache: 'npm'
@@ -99,7 +99,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout historial completo (para Gitleaks)
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
 
@@ -140,23 +140,23 @@ jobs:
         language: [csharp, javascript-typescript]
     steps:
       - name: Checkout código
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Instalar .NET 10 SDK (para CodeQL C#)
         if: matrix.language == 'csharp'
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: '10.0.x'
 
       - name: Inicializar CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@aaf92c3279600a7c7217a1cd605774c6c791c6c3 # v3
         with:
           languages: ${{ matrix.language }}
 
       - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
+        uses: github/codeql-action/autobuild@aaf92c3279600a7c7217a1cd605774c6c791c6c3 # v3
 
       - name: Analizar con CodeQL
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@aaf92c3279600a7c7217a1cd605774c6c791c6c3 # v3
         with:
           category: "/language:${{ matrix.language }}"
