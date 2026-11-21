@@ -4,16 +4,18 @@ using CustomPresenter.Domain.Songs;
 namespace CustomPresenter.Application.Songs;
 
 /// <summary>
-/// Casos de uso CRUD de canciones y conversión a diapositivas proyectables.
+/// Casos de uso CRUD, búsqueda FTS5 e importación de canciones.
 /// </summary>
 public sealed class SongService
 {
     private readonly ISongRepository _repository;
+    private readonly ISongImporter? _importer;
 
-    public SongService(ISongRepository repository)
+    public SongService(ISongRepository repository, ISongImporter? importer = null)
     {
         ArgumentNullException.ThrowIfNull(repository);
         _repository = repository;
+        _importer = importer;
     }
 
     public async Task<Song> CreateSongAsync(
@@ -57,6 +59,46 @@ public sealed class SongService
 
     public Task<IReadOnlyList<Song>> ListSongsAsync(CancellationToken cancellationToken = default) =>
         _repository.ListAllAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Song>> SearchSongsAsync(
+        string query,
+        int limit = 50,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            var all = await _repository.ListAllAsync(cancellationToken).ConfigureAwait(false);
+            return all.Take(Math.Clamp(limit, 1, 200)).ToList();
+        }
+
+        var sanitized = Fts5QuerySanitizer.Sanitize(query);
+        if (sanitized.Length == 0)
+        {
+            return [];
+        }
+
+        return await _repository.SearchAsync(sanitized, Math.Clamp(limit, 1, 200), cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<Song>> ImportSongsAsync(
+        Stream stream,
+        string fileName,
+        long reportedSizeBytes,
+        CancellationToken cancellationToken = default)
+    {
+        if (_importer is null)
+        {
+            throw new InvalidOperationException("No se configuró un importador de canciones.");
+        }
+
+        var songs = await _importer
+            .ImportAsync(stream, fileName, reportedSizeBytes, cancellationToken)
+            .ConfigureAwait(false);
+
+        await _repository.CreateBatchAsync(songs, cancellationToken).ConfigureAwait(false);
+        return songs;
+    }
 
     public static IReadOnlyList<SlideContent> ToSlideContents(Song song)
     {

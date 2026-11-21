@@ -18,11 +18,27 @@ public sealed class SongServiceTests
             return Task.CompletedTask;
         }
 
+        public Task CreateBatchAsync(IReadOnlyList<Song> songs, CancellationToken cancellationToken = default)
+        {
+            foreach (var song in songs)
+            {
+                _store[song.Id] = song;
+            }
+
+            return Task.CompletedTask;
+        }
+
         public Task<Song?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
             Task.FromResult(_store.GetValueOrDefault(id));
 
         public Task<IReadOnlyList<Song>> ListAllAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<Song>>(_store.Values.OrderBy(s => s.Title).ToList());
+
+        public Task<IReadOnlyList<Song>> SearchAsync(
+            string sanitizedFtsQuery,
+            int limit = 50,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<Song>>(_store.Values.Take(limit).ToList());
 
         public Task<bool> UpdateAsync(Song song, CancellationToken cancellationToken = default)
         {
