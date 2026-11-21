@@ -45,7 +45,7 @@ El proyecto se desarrolla en **flujo continuo XP** (entregas incrementales peque
   - Integración: servicio de listado de monitores y ciclo de vida (abrir/cerrar/posicionar) de la ventana `projector`.
   - Seguridad: verificar que la ventana `projector` no registra handlers IPC de escritura ni acceso al sistema de archivos.
 
-### HU-04: Panel de Operador base (Preview, Live y Atajos de teclado)
+### HU-04: Panel de Operador base (Preview, Live y Atajos de teclado) `[COMPLETADA]`
 - **Descripción:** Como operador, quiero una interfaz oscura clara en Vue 3 + TypeScript con controles rápidos de vivo (*Clear*, *Blackout*, *Logo*) y navegación por teclado para operar sin distracciones.
 - **Criterios de Aceptación (Given-When-Then):**
   - **Given** la ventana principal del operador abierta sin foco en campos de texto, **When** el operador presiona los botones o atajos de teclado configurados (`Flecha Abajo/Derecha`, `Esc` o `C` para Clear, `B` para Blackout), **Then** el estado en vivo cambia inmediatamente en ambas salidas (Proyector y OBS) y se refleja visualmente en el indicador *Live* del operador.

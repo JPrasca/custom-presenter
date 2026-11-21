@@ -15,10 +15,13 @@ using Microsoft.Extensions.Logging;
 namespace CustomPresenter.Infrastructure.ObsServer;
 
 /// <summary>
-/// Micro-servidor HTTP + WebSocket enlazado estrictamente a 127.0.0.1 para OBS Browser Source.
+/// Micro-servidor HTTP + WebSocket enlazado estrictamente a 127.0.0.1 para OBS Browser Source y Operador.
 /// </summary>
 public sealed class ObsWebServer : IAsyncDisposable
 {
+    private const string OperatorClientHeader = "X-CustomPresenter-Client";
+    private const string OperatorClientValue = "operator";
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -82,6 +85,12 @@ public sealed class ObsWebServer : IAsyncDisposable
         app.MapGet("/obs/app.js", () => Results.Content(ObsStaticAssets.AppJs, "application/javascript; charset=utf-8"));
         app.MapGet("/ws", HandleWebSocketAsync);
 
+        app.MapGet("/api/live", () => Results.Json(_liveStateManager.Snapshot(), JsonOptions));
+        app.MapPost("/api/live/project", (RequestDelegate)HandleProjectSlideAsync);
+        MapOperatorPost(app, "/api/live/clear", ct => _liveStateManager.ToggleClearTextAsync(ct));
+        MapOperatorPost(app, "/api/live/blackout", ct => _liveStateManager.ToggleBlackoutAsync(ct));
+        MapOperatorPost(app, "/api/live/logo", ct => _liveStateManager.ToggleLogoAsync(ct));
+
         await app.StartAsync(cancellationToken).ConfigureAwait(false);
         _app = app;
 
@@ -128,6 +137,97 @@ public sealed class ObsWebServer : IAsyncDisposable
             }
 
             _shutdownCts.Dispose();
+        }
+    }
+
+    private static bool IsAuthorizedOperatorPost(HttpRequest request)
+    {
+        if (!request.Headers.TryGetValue(OperatorClientHeader, out var clientHeader)
+            || !string.Equals(clientHeader.ToString(), OperatorClientValue, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        if (request.Headers.TryGetValue("Origin", out var originHeader))
+        {
+            var originRaw = originHeader.ToString();
+            if (!Uri.TryCreate(originRaw, UriKind.Absolute, out var originUri))
+            {
+                return false;
+            }
+
+            if (!string.Equals(originUri.Host, "127.0.0.1", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(originUri.Host, "localhost", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static void MapOperatorPost(
+        WebApplication app,
+        string pattern,
+        Func<CancellationToken, Task<LiveState>> action)
+    {
+        async Task Handler(HttpContext ctx) =>
+            await HandleAuthorizedPostAsync(ctx, () => action(ctx.RequestAborted)).ConfigureAwait(false);
+
+        app.MapPost(pattern, (RequestDelegate)Handler);
+    }
+
+    private static async Task HandleAuthorizedPostAsync(
+        HttpContext context,
+        Func<Task<LiveState>> action)
+    {
+        if (!IsAuthorizedOperatorPost(context.Request))
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return;
+        }
+
+        var state = await action().ConfigureAwait(false);
+        await Results.Json(state, JsonOptions).ExecuteAsync(context).ConfigureAwait(false);
+    }
+
+    private async Task HandleProjectSlideAsync(HttpContext context)
+    {
+        if (!IsAuthorizedOperatorPost(context.Request))
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return;
+        }
+
+        SlideContent? slide;
+        try
+        {
+            slide = await JsonSerializer.DeserializeAsync<SlideContent>(
+                context.Request.Body,
+                JsonOptions,
+                context.RequestAborted).ConfigureAwait(false);
+        }
+        catch (JsonException)
+        {
+            await Results.BadRequest("Payload JSON inválido.").ExecuteAsync(context).ConfigureAwait(false);
+            return;
+        }
+
+        if (slide is null)
+        {
+            await Results.BadRequest("Se requiere una diapositiva válida.").ExecuteAsync(context).ConfigureAwait(false);
+            return;
+        }
+
+        try
+        {
+            var updated = await _liveStateManager.ProjectSlideAsync(slide, context.RequestAborted)
+                .ConfigureAwait(false);
+            await Results.Json(updated, JsonOptions).ExecuteAsync(context).ConfigureAwait(false);
+        }
+        catch (DomainException ex)
+        {
+            await Results.BadRequest(ex.Message).ExecuteAsync(context).ConfigureAwait(false);
         }
     }
 
