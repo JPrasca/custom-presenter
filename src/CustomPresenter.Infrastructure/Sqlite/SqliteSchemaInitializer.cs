@@ -96,6 +96,28 @@ public static class SqliteSchemaInitializer
             );
 
             CREATE INDEX IF NOT EXISTS idx_announcements_title ON announcements(title);
+
+            CREATE TABLE IF NOT EXISTS playlists (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS playlist_items (
+                id TEXT PRIMARY KEY,
+                playlist_id TEXT NOT NULL,
+                position INTEGER NOT NULL,
+                item_kind INTEGER NOT NULL,
+                reference_key TEXT NOT NULL,
+                display_title TEXT NOT NULL,
+                subtitle TEXT NULL,
+                UNIQUE (playlist_id, position),
+                FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_playlist_items_order
+                ON playlist_items(playlist_id, position);
             """;
 
         await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
