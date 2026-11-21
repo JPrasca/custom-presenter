@@ -156,7 +156,7 @@ El proyecto se desarrolla en **flujo continuo XP** (entregas incrementales peque
   - Integración: endpoints `/api/*` protegidos con cabecera `X-CustomPresenter-Client: operator` y ciclo completo sobre SQLite + `ObsWebServer`.
   - Frontend: pruebas Vitest de los paneles interactivos en `OperatorView.vue`.
 
-### HU-15: Empaquetado en Contenedor Docker (Modo Servidor Web + Volumen Persistente)
+### HU-15: Empaquetado en Contenedor Docker (Modo Servidor Web + Volumen Persistente) `[COMPLETADA]`
 - **Descripción:** Como operador o administrador, quiero levantar todo el sistema con `docker compose up` persistiendo SQLite y `media/` en un volumen local para probar u operar desde navegador y OBS sin instalar dependencias locales.
 - **Criterios de Aceptación (Given-When-Then):**
   - **Given** un `Dockerfile` multi-stage y `compose.yaml` con volumen `/app/data`, **When** se construye e inicia el contenedor en modo servidor web, **Then** las vistas `/`, `/projector` y `/obs` responden en `127.0.0.1:47321` y los datos persisten tras reiniciar el contenedor.
