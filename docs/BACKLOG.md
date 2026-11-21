@@ -59,7 +59,7 @@ El proyecto se desarrolla en **flujo continuo XP** (entregas incrementales peque
 ## Épica 3: Gestión y Proyección de Canciones
 *Objetivo: Permitir crear, importar, buscar y proyectar letras de canciones divididas por estrofas.*
 
-### HU-05: CRUD de Canciones y división en diapositivas
+### HU-05: CRUD de Canciones y división en diapositivas `[COMPLETADA]`
 - **Descripción:** Como operador, quiero crear, editar y eliminar canciones en SQLite (`Microsoft.Data.Sqlite`) dividiendo la letra en estrofas para proyectarlas secuencialmente.
 - **Criterios de Aceptación (Given-When-Then):**
   - **Given** un formulario de canción con título y texto separado por líneas en blanco, **When** se guarda la canción, **Then** el dominio la divide en diapositivas ordenadas y la persiste en SQLite.
