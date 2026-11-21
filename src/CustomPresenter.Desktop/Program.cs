@@ -17,12 +17,35 @@ namespace CustomPresenter.Desktop;
 internal static class Program
 {
     [STAThread]
-    private static void Main()
+    private static int Main(string[] args)
     {
-        RunAsync().GetAwaiter().GetResult();
+        var options = ObsServerOptions.FromEnvironment();
+        if (args.Contains("--healthcheck", StringComparer.OrdinalIgnoreCase))
+        {
+            return RunHealthcheckAsync(options.Port).GetAwaiter().GetResult();
+        }
+
+        RunAsync(options).GetAwaiter().GetResult();
+        return 0;
     }
 
-    private static async Task RunAsync()
+    private static async Task<int> RunHealthcheckAsync(int port)
+    {
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
+            using var response = await http
+                .GetAsync(new Uri($"http://127.0.0.1:{port}/api/live"))
+                .ConfigureAwait(false);
+            return response.IsSuccessStatusCode ? 0 : 1;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            return 1;
+        }
+    }
+
+    private static async Task RunAsync(ObsServerOptions options)
     {
         var dataRoot = Environment.GetEnvironmentVariable("CUSTOM_PRESENTER_DATA_DIR");
         if (string.IsNullOrWhiteSpace(dataRoot))
@@ -72,9 +95,10 @@ internal static class Program
             args.Cancel = true;
             shutdown.Cancel();
         };
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => shutdown.Cancel();
 
         await using var obsServer = new ObsWebServer(
-            new ObsServerOptions(),
+            options,
             liveManager,
             broadcaster,
             services);

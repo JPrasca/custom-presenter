@@ -1,0 +1,20 @@
+services:
+  custom-presenter:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: custom-presenter
+    ports:
+      - "127.0.0.1:47321:47321"
+    environment:
+      CUSTOM_PRESENTER_CONTAINER: "true"
+      CUSTOM_PRESENTER_DATA_DIR: "/app/data"
+      CUSTOM_PRESENTER_PORT: "47321"
+    volumes:
+      - custom_presenter_data:/app/data
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+volumes:
+  custom_presenter_data:
