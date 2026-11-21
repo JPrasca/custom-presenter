@@ -136,7 +136,7 @@ El proyecto se desarrolla en **flujo continuo XP** (entregas incrementales peque
   - Integración: importación de imagen/video válido y asignación como fondo de diapositiva.
   - Seguridad: pruebas de *Path Traversal*, archivo con extensión falsa (magic bytes inválidos) y archivo que exceda el tamaño máximo.
 
-### HU-13: Respaldo local (Exportación / Importación JSON)
+### HU-13: Respaldo local (Exportación / Importación JSON) `[COMPLETADA]`
 - **Descripción:** Como operador, quiero exportar mis canciones y anuncios en un archivo JSON para respaldarlos o migrarlos de mi Mac de pruebas al equipo Windows del salón.
 - **Criterios de Aceptación (Given-When-Then):**
   - **Given** una biblioteca con canciones y anuncios, **When** el operador exporta el respaldo e importa ese archivo en una instancia limpia, **Then** todas las canciones y anuncios se restauran sin duplicados ni pérdida de formato.
