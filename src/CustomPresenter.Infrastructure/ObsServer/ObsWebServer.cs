@@ -33,6 +33,7 @@ public sealed class ObsWebServer : IAsyncDisposable
     private readonly ChannelLiveBroadcaster _broadcaster;
     private readonly IMediaRepository? _mediaRepository;
     private readonly IMediaStorage? _mediaStorage;
+    private readonly PresenterServices? _services;
     private readonly CancellationTokenSource _shutdownCts = new();
     private WebApplication? _app;
     private int _disposed;
@@ -53,6 +54,22 @@ public sealed class ObsWebServer : IAsyncDisposable
         _broadcaster = broadcaster;
         _mediaRepository = mediaRepository;
         _mediaStorage = mediaStorage;
+    }
+
+    public ObsWebServer(
+        ObsServerOptions options,
+        LiveStateManager liveStateManager,
+        ChannelLiveBroadcaster broadcaster,
+        PresenterServices services)
+        : this(
+            options,
+            liveStateManager,
+            broadcaster,
+            services?.MediaRepository,
+            services?.MediaStorage)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        _services = services;
     }
 
     public IPEndPoint BoundEndpoint { get; private set; } = new(IPAddress.Loopback, 0);
@@ -98,6 +115,16 @@ public sealed class ObsWebServer : IAsyncDisposable
         MapOperatorPost(app, "/api/live/blackout", ct => _liveStateManager.ToggleBlackoutAsync(ct));
         MapOperatorPost(app, "/api/live/logo", ct => _liveStateManager.ToggleLogoAsync(ct));
         app.MapGet("/media/{id:guid}", HandleGetMediaAsync);
+
+        if (_services is not null)
+        {
+            ObsApiEndpoints.MapPresenterEndpoints(
+                app,
+                _services,
+                _liveStateManager,
+                JsonOptions,
+                IsAuthorizedOperatorPost);
+        }
 
         await app.StartAsync(cancellationToken).ConfigureAwait(false);
         _app = app;

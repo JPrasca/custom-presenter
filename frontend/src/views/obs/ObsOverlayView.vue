@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import {
   createDefaultThemeSettings,
   createInitialLiveState,
@@ -12,8 +12,33 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-const activeState = computed(() => props.state ?? createInitialLiveState());
+const liveState = ref<LiveState>(createInitialLiveState());
+const activeState = computed(() => props.state ?? liveState.value);
 const textVisible = computed(() => isTextVisible(activeState.value));
+let socket: WebSocket | null = null;
+
+onMounted(() => {
+  if (props.state || typeof window === 'undefined' || typeof WebSocket === 'undefined') {
+    return;
+  }
+
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
+  socket.onmessage = (event) => {
+    try {
+      const parsed = JSON.parse(String(event.data)) as LiveState;
+      if (parsed && typeof parsed === 'object' && 'flags' in parsed) {
+        liveState.value = parsed;
+      }
+    } catch {
+      // Ignora payloads malformados.
+    }
+  };
+});
+
+onUnmounted(() => {
+  socket?.close();
+});
 const obsTheme = computed(
   () =>
     activeState.value.effectiveTheme?.obs ??

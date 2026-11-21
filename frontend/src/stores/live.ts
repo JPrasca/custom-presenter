@@ -143,6 +143,15 @@ export function createLiveStore(
     state.value = await transport.toggleLogo(state.value);
   }
 
+  function setSlides(nextSlides: SlideContent[]): void {
+    slides.value = nextSlides;
+    selectedIndex.value = nextSlides.length > 0 ? 0 : -1;
+  }
+
+  function syncState(nextState: LiveState): void {
+    state.value = nextState;
+  }
+
   return {
     state: readonly(state),
     slides: readonly(slides),
@@ -154,6 +163,8 @@ export function createLiveStore(
     toggleClearText,
     toggleBlackout,
     toggleLogo,
+    setSlides,
+    syncState,
   };
 }
 

@@ -58,6 +58,8 @@ function handleKeydown(event: KeyboardEvent) {
   external?.sendMessage?.('projector:close');
 }
 
+let socket: WebSocket | null = null;
+
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown);
   const external = (window as unknown as { external?: PhotinoExternal }).external;
@@ -71,10 +73,26 @@ onMounted(() => {
       // Ignora payloads malformados sin afectar el renderizado.
     }
   });
+
+  if (!props.state && typeof window !== 'undefined' && typeof WebSocket !== 'undefined') {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
+    socket.onmessage = (event) => {
+      try {
+        const parsed = JSON.parse(String(event.data)) as LiveState;
+        if (parsed && typeof parsed === 'object' && 'flags' in parsed) {
+          liveState.value = parsed;
+        }
+      } catch {
+        // Ignora payloads malformados sin afectar el renderizado.
+      }
+    };
+  }
 });
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown);
+  socket?.close();
 });
 </script>
 
