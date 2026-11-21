@@ -3,6 +3,8 @@
 El proyecto se desarrolla en **flujo continuo XP** (entregas incrementales pequeñas, verificables y ordenadas por valor y dependencia técnica). Cada Historia de Usuario debe implementarse con TDD, revisión de seguridad y pruebas automatizadas antes de pasar a la siguiente.
 
 > **Estándar obligatorio de pruebas (unitarias e integración):** todas las pruebas deben estructurarse explícitamente bajo el patrón **AAA** (`Arrange` / `Act` / `Assert`) y utilizar el patrón **Builder** para construir datos y escenarios de prueba de forma legible y mantenible.
+>
+> **Flujo de entrega por Historia (Git + CI):** cada Historia de Usuario se desarrolla en su propia rama (`feature/hu-XX-descripcion`) partiendo de `main`. Al finalizar el ciclo TDD, se ejecuta localmente `./scripts/verify.sh --audit` (equivalente local del pipeline de CI), se sube la rama y se abre un **Pull Request** hacia `main`. El merge a `main` requiere que los checks de [.github/workflows/ci.yml](file:///Users/pro/Desktop/Desk/custom-presenter/.github/workflows/ci.yml) pasen en verde.
 
 ---
 
