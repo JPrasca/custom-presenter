@@ -142,3 +142,24 @@ El proyecto se desarrolla en **flujo continuo XP** (entregas incrementales peque
   - **Given** una biblioteca con canciones y anuncios, **When** el operador exporta el respaldo e importa ese archivo en una instancia limpia, **Then** todas las canciones y anuncios se restauran sin duplicados ni pérdida de formato.
 - **Pruebas requeridas:**
   - Integración: ciclo completo de exportación → importación en BD limpia y validación de esquema JSON.
+
+---
+
+## Épica 6: Integración End-to-End y Despliegue en Contenedor
+*Objetivo: Unificar todos los servicios en el servidor local, completar la interfaz operativa web/desktop y habilitar ejecución reproducible en Docker.*
+
+### HU-14: Integración End-to-End (Composition Root + APIs `/api/*` + UI Operador) `[COMPLETADA]`
+- **Descripción:** Como operador, quiero gestionar canciones, biblias, anuncios, playlist, temas, fondos multimedia y respaldos desde una interfaz gráfica unificada conectada a la base de datos SQLite real.
+- **Criterios de Aceptación (Given-When-Then):**
+  - **Given** la aplicación iniciada con SQLite y carpeta `media/`, **When** el operador abre `/` en la vista Operador, **Then** puede crear/buscar/proyectar canciones, versículos, anuncios, armar/reordenar playlists, personalizar temas, subir/asignar fondos y exportar/importar respaldos, reflejándose en tiempo real en `/projector` y `/obs`.
+- **Pruebas requeridas:**
+  - Integración: endpoints `/api/*` protegidos con cabecera `X-CustomPresenter-Client: operator` y ciclo completo sobre SQLite + `ObsWebServer`.
+  - Frontend: pruebas Vitest de los paneles interactivos en `OperatorView.vue`.
+
+### HU-15: Empaquetado en Contenedor Docker (Modo Servidor Web + Volumen Persistente)
+- **Descripción:** Como operador o administrador, quiero levantar todo el sistema con `docker compose up` persistiendo SQLite y `media/` en un volumen local para probar u operar desde navegador y OBS sin instalar dependencias locales.
+- **Criterios de Aceptación (Given-When-Then):**
+  - **Given** un `Dockerfile` multi-stage y `compose.yaml` con volumen `/app/data`, **When** se construye e inicia el contenedor en modo servidor web, **Then** las vistas `/`, `/projector` y `/obs` responden en `127.0.0.1:47321` y los datos persisten tras reiniciar el contenedor.
+- **Pruebas requeridas:**
+  - Unitarias: configuración segura de enlace de red en `ObsServerOptions` para modo contenedor.
+  - Integración / Smoke: build de `Dockerfile` y verificación de arranque del host en modo headless.
