@@ -124,6 +124,17 @@ public static class SqliteSchemaInitializer
                 config_json TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS media_assets (
+                id TEXT PRIMARY KEY,
+                original_name TEXT NOT NULL,
+                kind INTEGER NOT NULL,
+                format INTEGER NOT NULL,
+                stored_file_name TEXT NOT NULL,
+                content_type TEXT NOT NULL,
+                size_bytes INTEGER NOT NULL,
+                imported_at TEXT NOT NULL
+            );
             """;
 
         await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);

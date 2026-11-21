@@ -127,7 +127,7 @@ El proyecto se desarrolla en **flujo continuo XP** (entregas incrementales peque
   - Unitarias: validación estricta de colores hexadecimales, rangos numéricos de fuente y posiciones permitidas.
   - Integración: persistencia de temas en SQLite y propagación en `LiveState`.
 
-### HU-12: Biblioteca local de fondos multimedia (Imagen y Video)
+### HU-12: Biblioteca local de fondos multimedia (Imagen y Video) `[COMPLETADA]`
 - **Descripción:** Como operador, quiero importar imágenes (PNG/JPG/WebP) y videos cortos (MP4/WebM) como fondos del proyector de forma segura y sin saturar OBS.
 - **Criterios de Aceptación (Given-When-Then):**
   - **Given** un archivo multimedia válido dentro del límite de tamaño, **When** el operador lo importa, **Then** se validan sus *magic bytes*, se copia con nombre UUID al directorio interno `media/` y queda disponible como fondo del Proyector Nativo.

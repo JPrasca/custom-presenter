@@ -41,6 +41,12 @@ const slideTextStyle = computed(() => ({
   fontSize: `${projectorTheme.value.fontSizePx}px`,
   textAlign: projectorTheme.value.alignment.toLowerCase() as 'left' | 'center' | 'right',
 }));
+const backgroundMedia = computed(() =>
+  activeState.value.flags.blackout ? null : (activeState.value.backgroundMedia ?? null)
+);
+const backgroundMediaUrl = computed(() =>
+  backgroundMedia.value ? `/media/${backgroundMedia.value.id}` : ''
+);
 
 function handleKeydown(event: KeyboardEvent) {
   if (event.key !== 'Escape') {
@@ -80,6 +86,21 @@ onUnmounted(() => {
     tabindex="0"
     @keydown="handleKeydown"
   >
+    <img
+      v-if="backgroundMedia && backgroundMedia.kind === 'Image'"
+      class="projector-bg-media"
+      :src="backgroundMediaUrl"
+      alt=""
+    />
+    <video
+      v-else-if="backgroundMedia && backgroundMedia.kind === 'Video'"
+      class="projector-bg-media"
+      :src="backgroundMediaUrl"
+      autoplay
+      loop
+      muted
+      playsinline
+    />
     <p v-if="textVisible && activeState.currentSlide" class="slide-text" :style="slideTextStyle">
       {{ activeState.currentSlide.text }}
     </p>
@@ -88,6 +109,8 @@ onUnmounted(() => {
 
 <style scoped>
 .projector {
+  position: relative;
+  overflow: hidden;
   width: 100vw;
   height: 100vh;
   display: flex;
@@ -100,7 +123,18 @@ onUnmounted(() => {
   outline: none;
 }
 
+.projector-bg-media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
 .slide-text {
+  position: relative;
+  z-index: 1;
   white-space: pre-line;
   font-size: 3rem;
   line-height: 1.3;

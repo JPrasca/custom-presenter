@@ -1,3 +1,4 @@
+using CustomPresenter.Domain.Media;
 using CustomPresenter.Domain.Themes;
 
 namespace CustomPresenter.Domain.Live;
@@ -62,9 +63,10 @@ public sealed record LiveFlags(
 public sealed record LiveState(
     SlideContent? CurrentSlide,
     LiveFlags Flags,
-    ThemeSettings? Theme = null)
+    ThemeSettings? Theme = null,
+    BackgroundMediaReference? BackgroundMedia = null)
 {
-    public static LiveState Empty { get; } = new(null, new LiveFlags(), ThemeSettings.Default);
+    public static LiveState Empty { get; } = new(null, new LiveFlags(), ThemeSettings.Default, null);
 
     public ThemeSettings EffectiveTheme => Theme ?? ThemeSettings.Default;
 
@@ -101,14 +103,18 @@ public sealed record LiveState(
     /// </summary>
     public bool IsTextVisible => EffectiveMode == EffectiveDisplayMode.Slide;
 
-    public static LiveState FromSlide(SlideContent slide, ThemeSettings? theme = null)
+    public static LiveState FromSlide(
+        SlideContent slide,
+        ThemeSettings? theme = null,
+        BackgroundMediaReference? backgroundMedia = null)
     {
         ArgumentNullException.ThrowIfNull(slide);
         slide.Validate();
         return new LiveState(
             slide,
             new LiveFlags(ClearText: false, Blackout: false, Logo: false),
-            theme ?? ThemeSettings.Default);
+            theme ?? ThemeSettings.Default,
+            backgroundMedia);
     }
 
     public LiveState WithTheme(ThemeSettings theme)
@@ -116,6 +122,9 @@ public sealed record LiveState(
         ArgumentNullException.ThrowIfNull(theme);
         return this with { Theme = theme };
     }
+
+    public LiveState WithBackgroundMedia(BackgroundMediaReference? backgroundMedia) =>
+        this with { BackgroundMedia = backgroundMedia };
 
     public LiveState WithToggleClearText() =>
         this with { Flags = Flags with { ClearText = !Flags.ClearText } };
