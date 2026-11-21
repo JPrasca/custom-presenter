@@ -112,7 +112,7 @@ El proyecto se desarrolla en **flujo continuo XP** (entregas incrementales peque
 ## Épica 5: Lista de Servicio (Playlist), Temas y Multimedia
 *Objetivo: Orquestar un evento completo de principio a fin con estilos visuales propios y fondos multimedia.*
 
-### HU-10: Lista de Servicio (Playlist) mixta y persistente
+### HU-10: Lista de Servicio (Playlist) mixta y persistente `[COMPLETADA]`
 - **Descripción:** Como operador, quiero armar una lista ordenada con canciones, pasajes bíblicos y anuncios para recorrer el orden del evento sin buscar cada ítem en vivo.
 - **Criterios de Aceptación (Given-When-Then):**
   - **Given** ítems de canciones, versículos y anuncios, **When** el operador los añade a la playlist, los reordena y guarda la lista, **Then** la secuencia persiste en SQLite y permite avanzar secuencialmente de un ítem al siguiente.
