@@ -58,6 +58,19 @@ internal static class ObsApiEndpoints
             return Results.Json(song, jsonOptions);
         }));
 
+        app.MapPut("/api/songs/{id:guid}", (HttpContext ctx, Guid id) => ExecuteOperatorAsync(ctx, isAuthorized, jsonOptions, async () =>
+        {
+            var req = await ReadJsonAsync<CreateSongRequest>(ctx, jsonOptions).ConfigureAwait(false);
+            var song = await services.Songs.UpdateSongAsync(
+                id,
+                req.Title,
+                req.Author,
+                req.MusicalKey,
+                req.RawLyrics,
+                ctx.RequestAborted).ConfigureAwait(false);
+            return Results.Json(song, jsonOptions);
+        }));
+
         app.MapDelete("/api/songs/{id:guid}", (HttpContext ctx, Guid id) => ExecuteOperatorAsync(ctx, isAuthorized, jsonOptions, async () =>
         {
             var deleted = await services.Songs.DeleteSongAsync(id, ctx.RequestAborted).ConfigureAwait(false);

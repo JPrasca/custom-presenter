@@ -5,6 +5,7 @@ export interface SongItem {
   title: string;
   author?: string | null;
   musicalKey?: string | null;
+  rawLyrics?: string;
   slides: { index: number; label: string; text: string }[];
 }
 
@@ -102,6 +103,14 @@ export const presenterApi = {
     requestJson<SongItem[]>(`/api/songs${q ? `?q=${encodeURIComponent(q)}` : ''}`),
   createSong: (title: string, rawLyrics: string, author?: string, musicalKey?: string) =>
     jsonMutate<SongItem>('/api/songs', 'POST', { title, rawLyrics, author, musicalKey }),
+  updateSong: (
+    id: string,
+    title: string,
+    rawLyrics: string,
+    author?: string,
+    musicalKey?: string
+  ) => jsonMutate<SongItem>(`/api/songs/${id}`, 'PUT', { title, rawLyrics, author, musicalKey }),
+  deleteSong: (id: string) => jsonMutate<{ deleted: boolean }>(`/api/songs/${id}`, 'DELETE'),
   projectSong: (id: string, slideIndex: number) =>
     jsonMutate<LiveState>(`/api/songs/${id}/project/${slideIndex}`, 'POST'),
 

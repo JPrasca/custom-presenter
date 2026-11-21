@@ -137,6 +137,21 @@ public sealed class FullApiIntegrationTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.OK, projectSongRes.StatusCode);
         Assert.Equal("Sublime Gracia", liveManager.Snapshot().CurrentSlide?.Title);
 
+        var updateSongRes = await http.PutAsJsonAsync($"/api/songs/{createdSong.Id:D}", new
+        {
+            title = "Sublime Gracia (Editada)",
+            author = "John Newton",
+            musicalKey = "A",
+            rawLyrics = "Estrofa 1\n\nEstrofa 2",
+        });
+        Assert.Equal(HttpStatusCode.OK, updateSongRes.StatusCode);
+        var updatedSong = await updateSongRes.Content.ReadFromJsonAsync<IdTitleDto>();
+        Assert.Equal("Sublime Gracia (Editada)", updatedSong?.Title);
+
+        var projectUpdatedRes = await http.PostAsync($"/api/songs/{createdSong.Id:D}/project/1", null);
+        Assert.Equal(HttpStatusCode.OK, projectUpdatedRes.StatusCode);
+        Assert.Equal("Estrofa 2", liveManager.Snapshot().CurrentSlide?.Text);
+
         // Act - Anuncios
         var createAnnRes = await http.PostAsJsonAsync("/api/announcements", new
         {
