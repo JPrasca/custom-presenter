@@ -57,6 +57,14 @@ public sealed record BibleVerse(
 }
 
 /// <summary>
+/// Resumen de un libro bíblico disponible en una versión.
+/// </summary>
+public sealed record BibleBookSummary(
+    int BookNumber,
+    string BookName,
+    int ChaptersCount);
+
+/// <summary>
 /// Resultado de una importación de Biblia validada en memoria.
 /// </summary>
 public sealed record BibleImportResult(
