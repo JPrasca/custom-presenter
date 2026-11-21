@@ -1,17 +1,21 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { createInitialLiveState, isTextVisible } from '../../stores/live';
+import type { LiveState } from '../../types/live';
 
-const state = createInitialLiveState();
-const textVisible = computed(() => isTextVisible(state));
+interface Props {
+  state?: LiveState;
+}
+
+const props = defineProps<Props>();
+const activeState = computed(() => props.state ?? createInitialLiveState());
+const textVisible = computed(() => isTextVisible(activeState.value));
 </script>
 
 <template>
   <main class="obs-overlay">
-    <div v-if="textVisible && state.currentSlide" class="lower-third">
-      <p class="slide-text">
-        {{ state.currentSlide.text }}
-      </p>
+    <div v-if="textVisible && activeState.currentSlide" class="lower-third">
+      <p class="slide-text">{{ activeState.currentSlide.text }}</p>
     </div>
   </main>
 </template>

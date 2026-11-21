@@ -19,7 +19,7 @@ El proyecto se desarrolla en **flujo continuo XP** (entregas incrementales peque
   - Unitarias (Dominio/Aplicación - xUnit): transiciones de `LiveState` (proyectar, limpiar texto, blackout, logo) y prioridad entre banderas.
   - Integración: suscripción múltiple al broadcaster verificando recepción de eventos sin pérdida.
 
-### HU-02: Micro-servidor local (`127.0.0.1:47321`) y vista transparente para OBS
+### HU-02: Micro-servidor local (`127.0.0.1:47321`) y vista transparente para OBS `[COMPLETADA]`
 - **Descripción:** Como operador, quiero un micro-servidor HTTP/WebSocket local en ASP.NET Core Minimal APIs con una ruta `/obs` de fondo transparente real (canal alfa) para conectarlo como Fuente de Navegador en OBS Studio.
 - **Criterios de Aceptación (Given-When-Then):**
   - **Given** que la aplicación está ejecutándose, **When** OBS Studio abre `http://127.0.0.1:47321/obs` (puerto fijo por defecto, configurable en ajustes si está ocupado), **Then** recibe un documento HTML válido con `background: transparent` y se conecta automáticamente al WebSocket `/ws`.
