@@ -67,7 +67,7 @@ public sealed class BibleSearchService
         return [];
     }
 
-    public Task<IReadOnlyList<BibleVerse>> SearchAsync(
+    public async Task<IReadOnlyList<BibleVerse>> SearchAsync(
         Guid versionId,
         string query,
         int limit = 50,
@@ -75,25 +75,58 @@ public sealed class BibleSearchService
     {
         if (string.IsNullOrWhiteSpace(query))
         {
-            return Task.FromResult<IReadOnlyList<BibleVerse>>([]);
+            return [];
         }
 
         if (BibleReferenceParser.TryParse(query, out var reference) && reference is not null)
         {
-            return _repository.FindByReferenceAsync(versionId, reference, cancellationToken);
+            var local = await _repository.FindByReferenceAsync(versionId, reference, cancellationToken).ConfigureAwait(false);
+            if (local.Count > 0 || _onlineProvider is null)
+            {
+                return local;
+            }
+
+            var versions = await _repository.ListVersionsAsync(cancellationToken).ConfigureAwait(false);
+            var currentVersion = versions.FirstOrDefault(v => v.Id == versionId);
+            var abbr = currentVersion?.Abbreviation ?? "RVR60";
+            var bookNumber = reference.CanonicalBookNumber ?? 1;
+            var bookName = BibleReferenceParser.GetCanonicalBookName(bookNumber) ?? reference.BookQuery;
+
+            try
+            {
+                var onlineVerses = await _onlineProvider.FetchChapterVersesAsync(
+                    versionId,
+                    abbr,
+                    bookNumber,
+                    bookName,
+                    reference.Chapter,
+                    cancellationToken).ConfigureAwait(false);
+
+                if (onlineVerses.Count > 0)
+                {
+                    await _repository.SaveVersesBatchAsync(onlineVerses, cancellationToken).ConfigureAwait(false);
+                    return await _repository.FindByReferenceAsync(versionId, reference, cancellationToken).ConfigureAwait(false);
+                }
+            }
+            catch
+            {
+                // Falla controlada sin afectar modo offline
+            }
+
+            return [];
         }
 
         var sanitized = Fts5QuerySanitizer.Sanitize(query);
         if (sanitized.Length == 0)
         {
-            return Task.FromResult<IReadOnlyList<BibleVerse>>([]);
+            return [];
         }
 
-        return _repository.SearchVersesFtsAsync(
+        return await _repository.SearchVersesFtsAsync(
             versionId,
             sanitized,
             Math.Clamp(limit, 1, 200),
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
     }
 
     public static SlideContent ToSlideContent(BibleVerse verse, string versionAbbreviation)

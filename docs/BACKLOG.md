@@ -203,3 +203,31 @@ El proyecto se desarrolla en **flujo continuo XP** (entregas incrementales peque
   - Integración: endpoint de obtención/persistencia de capítulos bíblicos a demanda en SQLite y catálogo de versiones.
   - Frontend: pruebas Vitest del selector en 3 pasos (`Libro` → `Capítulo` → `Versículo`), botón de versículo y formulario colapsable de importación.
 
+---
+
+### HU-20: Switch de Versiones Bíblicas en Caliente y Búsqueda Directa Multiversión `[EN PROGRESO]`
+- **Issue GitHub:** [#40](https://github.com/JPrasca/custom-presenter/issues/40)
+- **Descripción:** Como operador en vivo, quiero cambiar la versión de la cita bíblica actualmente proyectada en un solo clic y buscar citas directas en cualquier versión (RVR60, RV1909, NVI, NTV, PDT) a demanda para no perder tiempo ni fluidez durante el servicio.
+- **Criterios de Aceptación:**
+  - **Given** una cita bíblica directa ingresada en el buscador (ej. `Juan 3:16`, `Salmos 23`) y cualquier versión seleccionada (incluso sin datos previos en local), **When** el operador ejecuta la búsqueda, **Then** el backend consulta el proveedor online a demanda para ese capítulo, lo guarda en SQLite y retorna el versículo listo para proyectar.
+  - **Given** una diapositiva bíblica proyectada en vivo, **When** el operador visualiza el monitor Live, **Then** se muestra una botonera de switch rápido con las versiones disponibles (`RVR60`, `RV1909`, `NVI`, `NTV`, `PDT`), resaltando la versión actualmente proyectada.
+  - **Given** un versículo proyectado y la botonera de versiones visibles, **When** el operador pulsa una versión diferente, **Then** el sistema carga en caliente el mismo versículo en la nueva versión, lo proyecta de inmediato y sincroniza las diapositivas del carrusel para continuar la navegación secuencial.
+- **Pruebas requeridas:**
+  - Backend: pruebas unitarias de `BibleSearchService` verificando búsqueda directa con fallback online y persistencia automática.
+  - Frontend: pruebas Vitest de renderizado de la botonera de switch en caliente en el monitor Live y cambio de versión al pulsar un botón.
+
+---
+
+### HU-21: Consola del Operador Unificada (Single-Screen Dashboard sin Scroll Global) `[EN PROGRESO]`
+- **Issue GitHub:** [#41](https://github.com/JPrasca/custom-presenter/issues/41)
+- **Descripción:** Como operador de proyección, quiero una interfaz adaptativa en un dashboard de 2 columnas donde los controles, el monitor Live y el Preview permanezcan siempre a la vista sin requerir scroll vertical de la página completa, para poder operar cómodamente en pantallas 1080p o laptops.
+- **Criterios de Aceptación:**
+  - **Given** la pantalla del operador en cualquier resolución (incluyendo 1080p y portátiles), **When** se visualiza la aplicación, **Then** la consola se organiza en 2 columnas principales con altura fija al viewport (`100vh`) y scrolls internos independientes:
+    - Columna izquierda (~60%): Biblioteca (canciones, selector de libros bíblicos, anuncios, playlists) con búsqueda unificada.
+    - Columna derecha (~40%): Monitor Live con switch de versiones en la parte superior, barra de controles en el medio y lista Preview en la parte inferior.
+  - **Given** navegación por listas largas de canciones o la cuadrícula de 66 libros bíblicos, **When** el operador navega o selecciona elementos, **Then** el monitor Live y los controles nunca se ocultan ni requieren scroll de la página completa para ser utilizados.
+  - **Given** pantallas estrechas (<900px), **When** se reduce el ancho del navegador, **Then** la cuadrícula se adapta de forma fluida manteniendo la accesibilidad de los controles.
+- **Pruebas requeridas:**
+  - Frontend: pruebas Vitest de renderizado del dashboard de 2 columnas y verificación de accesibilidad de controles sin depender de scroll global.
+
+

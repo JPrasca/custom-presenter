@@ -134,4 +134,27 @@ describe('OperatorView y atajos de teclado (HU-04)', () => {
     expect(transport.toggleLogo).not.toHaveBeenCalled();
     wrapper.unmount();
   });
+
+  it('HU-20: muestra botonera de switch en caliente cuando hay un versículo bíblico al aire', async () => {
+    // Arrange
+    const bibleSlide = new SlideContentBuilder()
+      .withId('v1:19:23:1')
+      .withTitle('Salmos 23:1 (RVR60)')
+      .withText('Jehová es mi pastor; nada me faltará.')
+      .build();
+    const transport = {
+      ...createFakeTransport(),
+      getState: vi.fn(async () => new LiveStateBuilder().withSlide(bibleSlide).build()),
+    };
+    const store = createLiveStore(transport, [bibleSlide]);
+    await store.projectSlide(bibleSlide);
+
+    const wrapper = mount(OperatorView, {
+      props: { store },
+    });
+
+    // Act & Assert
+    const hotVersionsBar = wrapper.find('[data-testid="hot-versions-bar"]');
+    expect(hotVersionsBar.exists()).toBe(true);
+  });
 });

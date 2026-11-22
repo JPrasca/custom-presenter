@@ -61,10 +61,14 @@ public sealed class BibleSearchServiceTests
         {
             LastQueriedVersionId = versionId;
             UsedReferenceLookup = true;
-            var matches = verses
+            var allVerses = verses.Concat(SavedBatches);
+            var matches = allVerses
                 .Where(v => v.VersionId == versionId
                     && v.BookNumber == reference.CanonicalBookNumber
-                    && v.Chapter == reference.Chapter)
+                    && v.Chapter == reference.Chapter
+                    && (reference.EndVerse == null
+                        ? v.Verse == reference.StartVerse
+                        : (v.Verse >= reference.StartVerse && v.Verse <= reference.EndVerse.Value)))
                 .ToList();
             return Task.FromResult<IReadOnlyList<BibleVerse>>(matches);
         }
@@ -165,6 +169,33 @@ public sealed class BibleSearchServiceTests
         // Assert
         Assert.Single(result);
         Assert.Equal("Juan", result[0].BookName);
+        Assert.Equal(16, result[0].Verse);
+        Assert.Single(repo.SavedBatches);
+        Assert.Equal(downloadedVerse.Text, repo.SavedBatches[0].Text);
+    }
+
+    [Fact]
+    public async Task SearchAsyncConCitaDirectaSinVersiculosLocalesDescargaPersisteYRetornaCoincidenciaDesdeOnline()
+    {
+        // Arrange
+        var versionId = Guid.NewGuid();
+        var repo = new FakeBibleRepository([]);
+        var downloadedVerse = new BibleVerseBuilder()
+            .WithVersionId(versionId)
+            .WithBook(43, "Juan")
+            .WithReference(3, 16)
+            .WithText("Porque de tal manera amó Dios al mundo que dio a su Hijo unigénito...")
+            .Build();
+        var onlineProvider = new FakeBibleOnlineProvider([downloadedVerse]);
+        var service = new BibleSearchService(repo, onlineProvider);
+
+        // Act
+        var result = await service.SearchAsync(versionId, "Juan 3:16");
+
+        // Assert
+        Assert.Single(result);
+        Assert.Equal("Juan", result[0].BookName);
+        Assert.Equal(3, result[0].Chapter);
         Assert.Equal(16, result[0].Verse);
         Assert.Single(repo.SavedBatches);
         Assert.Equal(downloadedVerse.Text, repo.SavedBatches[0].Text);
