@@ -188,7 +188,7 @@ El proyecto se desarrolla en **flujo continuo XP** (entregas incrementales peque
   - Unitarias: `SongLyricsFormatter` (marcas de tiempo, preservación de `[Coro]`/`[Verso]`, división en bloques de 4 líneas).
   - Integración: cliente LRCLIB (mock HTTP, manejo controlado de fallo offline sin romper la app) y endpoint `GET /api/songs/lyrics-search`.
 
-### HU-19: Navegación Bíblica a Demanda por Internet, Versiones Comunes y Selector Fluido Libro/Capítulo/Versículo `[EN PROGRESO]`
+### HU-19: Navegación Bíblica a Demanda por Internet, Versiones Comunes y Selector Fluido Libro/Capítulo/Versículo `[COMPLETADA]`
 - **Descripción:** Como operador, quiero navegar por los 66 libros de la Biblia mediante un selector fluido en 3 pasos (Libro → Capítulo → Versículo estilo Holyrics) y consultar capítulos a demanda desde internet (o precargar versiones como RVR1960/RV1909) con persistencia automática en SQLite para no tener que buscar ni subir archivos XML manualmente y garantizar proyección offline.
 - **Criterios de Aceptación (Given-When-Then):**
   - **Given** la pestaña Biblia del operador, **When** el usuario abre la navegación por libros, **Then** los 66 libros canónicos se muestran disponibles y al pulsar un libro se despliega su cuadrícula de capítulos.
