@@ -205,8 +205,8 @@ El proyecto se desarrolla en **flujo continuo XP** (entregas incrementales peque
 
 ---
 
-### HU-20: Switch de Versiones Bíblicas en Caliente y Búsqueda Directa Multiversión `[EN PROGRESO]`
-- **Issue GitHub:** [#40](https://github.com/JPrasca/custom-presenter/issues/40)
+### HU-20: Switch de Versiones Bíblicas en Caliente y Búsqueda Directa Multiversión `[COMPLETADA]`
+- **Issue GitHub:** [#40](https://github.com/JPrasca/custom-presenter/issues/40) (PR [#42](https://github.com/JPrasca/custom-presenter/pull/42))
 - **Descripción:** Como operador en vivo, quiero cambiar la versión de la cita bíblica actualmente proyectada en un solo clic y buscar citas directas en cualquier versión (RVR60, RV1909, NVI, NTV, PDT) a demanda para no perder tiempo ni fluidez durante el servicio.
 - **Criterios de Aceptación:**
   - **Given** una cita bíblica directa ingresada en el buscador (ej. `Juan 3:16`, `Salmos 23`) y cualquier versión seleccionada (incluso sin datos previos en local), **When** el operador ejecuta la búsqueda, **Then** el backend consulta el proveedor online a demanda para ese capítulo, lo guarda en SQLite y retorna el versículo listo para proyectar.
@@ -218,8 +218,8 @@ El proyecto se desarrolla en **flujo continuo XP** (entregas incrementales peque
 
 ---
 
-### HU-21: Consola del Operador Unificada (Single-Screen Dashboard sin Scroll Global) `[EN PROGRESO]`
-- **Issue GitHub:** [#41](https://github.com/JPrasca/custom-presenter/issues/41)
+### HU-21: Consola del Operador Unificada (Single-Screen Dashboard sin Scroll Global) `[COMPLETADA]`
+- **Issue GitHub:** [#41](https://github.com/JPrasca/custom-presenter/issues/41) (PR [#42](https://github.com/JPrasca/custom-presenter/pull/42))
 - **Descripción:** Como operador de proyección, quiero una interfaz adaptativa en un dashboard de 2 columnas donde los controles, el monitor Live y el Preview permanezcan siempre a la vista sin requerir scroll vertical de la página completa, para poder operar cómodamente en pantallas 1080p o laptops.
 - **Criterios de Aceptación:**
   - **Given** la pantalla del operador en cualquier resolución (incluyendo 1080p y portátiles), **When** se visualiza la aplicación, **Then** la consola se organiza en 2 columnas principales con altura fija al viewport (`100vh`) y scrolls internos independientes:
