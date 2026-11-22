@@ -10,11 +10,15 @@ namespace CustomPresenter.Application.Bibles;
 public sealed class BibleSearchService
 {
     private readonly IBibleRepository _repository;
+    private readonly IBibleOnlineProvider? _onlineProvider;
 
-    public BibleSearchService(IBibleRepository repository)
+    public BibleSearchService(
+        IBibleRepository repository,
+        IBibleOnlineProvider? onlineProvider = null)
     {
         ArgumentNullException.ThrowIfNull(repository);
         _repository = repository;
+        _onlineProvider = onlineProvider;
     }
 
     public Task<IReadOnlyList<BibleBookSummary>> ListBooksAsync(
@@ -22,12 +26,46 @@ public sealed class BibleSearchService
         CancellationToken cancellationToken = default) =>
         _repository.ListBooksAsync(versionId, cancellationToken);
 
-    public Task<IReadOnlyList<BibleVerse>> GetChapterVersesAsync(
+    public async Task<IReadOnlyList<BibleVerse>> GetChapterVersesAsync(
         Guid versionId,
         int bookNumber,
         int chapter,
-        CancellationToken cancellationToken = default) =>
-        _repository.GetChapterVersesAsync(versionId, bookNumber, chapter, cancellationToken);
+        CancellationToken cancellationToken = default)
+    {
+        var local = await _repository.GetChapterVersesAsync(versionId, bookNumber, chapter, cancellationToken).ConfigureAwait(false);
+        if (local.Count > 0 || _onlineProvider is null)
+        {
+            return local;
+        }
+
+        var versions = await _repository.ListVersionsAsync(cancellationToken).ConfigureAwait(false);
+        var currentVersion = versions.FirstOrDefault(v => v.Id == versionId);
+        var abbr = currentVersion?.Abbreviation ?? "RVR60";
+        var bookName = BibleReferenceParser.GetCanonicalBookName(bookNumber) ?? $"Libro {bookNumber}";
+
+        try
+        {
+            var onlineVerses = await _onlineProvider.FetchChapterVersesAsync(
+                versionId,
+                abbr,
+                bookNumber,
+                bookName,
+                chapter,
+                cancellationToken).ConfigureAwait(false);
+
+            if (onlineVerses.Count > 0)
+            {
+                await _repository.SaveVersesBatchAsync(onlineVerses, cancellationToken).ConfigureAwait(false);
+                return onlineVerses;
+            }
+        }
+        catch
+        {
+            // Falla controlada sin afectar modo offline
+        }
+
+        return [];
+    }
 
     public Task<IReadOnlyList<BibleVerse>> SearchAsync(
         Guid versionId,

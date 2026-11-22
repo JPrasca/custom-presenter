@@ -34,4 +34,8 @@ public interface IBibleRepository
         string sanitizedFtsQuery,
         int limit = 50,
         CancellationToken cancellationToken = default);
+
+    Task SaveVersesBatchAsync(
+        IReadOnlyList<BibleVerse> verses,
+        CancellationToken cancellationToken = default);
 }

@@ -34,8 +34,25 @@ public sealed class BibleSearchServiceTests
             Guid versionId,
             int bookNumber,
             int chapter,
-            CancellationToken cancellationToken = default) =>
-            Task.FromResult<IReadOnlyList<BibleVerse>>([]);
+            CancellationToken cancellationToken = default)
+        {
+            var matches = verses
+                .Where(v => v.VersionId == versionId
+                    && v.BookNumber == bookNumber
+                    && v.Chapter == chapter)
+                .ToList();
+            return Task.FromResult<IReadOnlyList<BibleVerse>>(matches);
+        }
+
+        public List<BibleVerse> SavedBatches { get; } = [];
+
+        public Task SaveVersesBatchAsync(
+            IReadOnlyList<BibleVerse> items,
+            CancellationToken cancellationToken = default)
+        {
+            SavedBatches.AddRange(items);
+            return Task.CompletedTask;
+        }
 
         public Task<IReadOnlyList<BibleVerse>> FindByReferenceAsync(
             Guid versionId,
@@ -113,5 +130,43 @@ public sealed class BibleSearchServiceTests
         Assert.Equal("Salmos 23:1-2 (RVR60)", rangeSlide.Reference);
         Assert.Contains("1 Jehová es mi pastor", rangeSlide.Text, StringComparison.Ordinal);
         Assert.Contains("2 En lugares de delicados pastos", rangeSlide.Text, StringComparison.Ordinal);
+    }
+
+    private sealed class FakeBibleOnlineProvider(IReadOnlyList<BibleVerse> onlineVerses) : IBibleOnlineProvider
+    {
+        public Task<IReadOnlyList<BibleVerse>> FetchChapterVersesAsync(
+            Guid versionId,
+            string versionAbbreviation,
+            int bookNumber,
+            string bookName,
+            int chapter,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(onlineVerses);
+    }
+
+    [Fact]
+    public async Task GetChapterVersesAsyncSinVersiculosLocalesDescargaPersisteYDevuelveDesdeOnline()
+    {
+        // Arrange
+        var versionId = Guid.NewGuid();
+        var repo = new FakeBibleRepository([]);
+        var downloadedVerse = new BibleVerseBuilder()
+            .WithVersionId(versionId)
+            .WithBook(43, "Juan")
+            .WithReference(3, 16)
+            .WithText("Porque de tal manera amó Dios al mundo...")
+            .Build();
+        var onlineProvider = new FakeBibleOnlineProvider([downloadedVerse]);
+        var service = new BibleSearchService(repo, onlineProvider);
+
+        // Act
+        var result = await service.GetChapterVersesAsync(versionId, 43, 3);
+
+        // Assert
+        Assert.Single(result);
+        Assert.Equal("Juan", result[0].BookName);
+        Assert.Equal(16, result[0].Verse);
+        Assert.Single(repo.SavedBatches);
+        Assert.Equal(downloadedVerse.Text, repo.SavedBatches[0].Text);
     }
 }

@@ -17,3 +17,6 @@ logs/
 Library/
 .env
 .env.*
+nuget.config
+.nuget/
+

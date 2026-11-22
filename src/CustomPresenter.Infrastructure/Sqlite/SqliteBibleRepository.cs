@@ -52,6 +52,27 @@ public sealed class SqliteBibleRepository : IBibleRepository
         await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task SaveVersesBatchAsync(
+        IReadOnlyList<BibleVerse> verses,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(verses);
+        if (verses.Count == 0)
+        {
+            return;
+        }
+
+        await using var connection = await SqliteConnectionFactory
+            .OpenAsync(_connectionString, cancellationToken)
+            .ConfigureAwait(false);
+        await using var tx = (SqliteTransaction)await connection
+            .BeginTransactionAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        await InsertVersesBatchAsync(connection, tx, verses, cancellationToken).ConfigureAwait(false);
+        await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<IReadOnlyList<BibleVersion>> ListVersionsAsync(CancellationToken cancellationToken = default)
     {
         await using var connection = await SqliteConnectionFactory
@@ -304,7 +325,7 @@ public sealed class SqliteBibleRepository : IBibleRepository
         await using var insertVerse = connection.CreateCommand();
         insertVerse.Transaction = transaction;
         insertVerse.CommandText = """
-            INSERT INTO bible_verses (version_id, book_number, book_name, chapter, verse, verse_text)
+            INSERT OR REPLACE INTO bible_verses (version_id, book_number, book_name, chapter, verse, verse_text)
             VALUES (@versionId, @bookNumber, @bookName, @chapter, @verse, @verseText);
             """;
         var pVersionId = insertVerse.Parameters.Add("@versionId", SqliteType.Text);
@@ -313,6 +334,17 @@ public sealed class SqliteBibleRepository : IBibleRepository
         var pChapter = insertVerse.Parameters.Add("@chapter", SqliteType.Integer);
         var pVerse = insertVerse.Parameters.Add("@verse", SqliteType.Integer);
         var pVerseText = insertVerse.Parameters.Add("@verseText", SqliteType.Text);
+
+        await using var deleteFts = connection.CreateCommand();
+        deleteFts.Transaction = transaction;
+        deleteFts.CommandText = """
+            DELETE FROM bible_verses_fts
+            WHERE version_id = @versionId AND book_name = @bookName AND chapter = @chapter AND verse = @verse;
+            """;
+        var dVersionId = deleteFts.Parameters.Add("@versionId", SqliteType.Text);
+        var dBookName = deleteFts.Parameters.Add("@bookName", SqliteType.Text);
+        var dChapter = deleteFts.Parameters.Add("@chapter", SqliteType.Integer);
+        var dVerse = deleteFts.Parameters.Add("@verse", SqliteType.Integer);
 
         await using var insertFts = connection.CreateCommand();
         insertFts.Transaction = transaction;
@@ -337,6 +369,12 @@ public sealed class SqliteBibleRepository : IBibleRepository
             pVerse.Value = item.Verse;
             pVerseText.Value = item.Text;
             await insertVerse.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+
+            dVersionId.Value = versionIdStr;
+            dBookName.Value = item.BookName;
+            dChapter.Value = item.Chapter;
+            dVerse.Value = item.Verse;
+            await deleteFts.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
             fVersionId.Value = versionIdStr;
             fBookName.Value = item.BookName;

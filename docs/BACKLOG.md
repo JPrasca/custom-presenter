@@ -187,3 +187,19 @@ El proyecto se desarrolla en **flujo continuo XP** (entregas incrementales peque
 - **Pruebas requeridas:**
   - Unitarias: `SongLyricsFormatter` (marcas de tiempo, preservación de `[Coro]`/`[Verso]`, división en bloques de 4 líneas).
   - Integración: cliente LRCLIB (mock HTTP, manejo controlado de fallo offline sin romper la app) y endpoint `GET /api/songs/lyrics-search`.
+
+### HU-19: Navegación Bíblica a Demanda por Internet, Versiones Comunes y Selector Fluido Libro/Capítulo/Versículo `[EN PROGRESO]`
+- **Descripción:** Como operador, quiero navegar por los 66 libros de la Biblia mediante un selector fluido en 3 pasos (Libro → Capítulo → Versículo estilo Holyrics) y consultar capítulos a demanda desde internet (o precargar versiones como RVR1960/RV1909) con persistencia automática en SQLite para no tener que buscar ni subir archivos XML manualmente y garantizar proyección offline.
+- **Criterios de Aceptación (Given-When-Then):**
+  - **Given** la pestaña Biblia del operador, **When** el usuario abre la navegación por libros, **Then** los 66 libros canónicos se muestran disponibles y al pulsar un libro se despliega su cuadrícula de capítulos.
+  - **Given** un libro seleccionado, **When** el operador pulsa un número de capítulo, **Then** se despliega la cuadrícula con los números de versículos (`1`, `2`, ..., `N`) y la lista con su texto.
+  - **Given** un versículo seleccionado, **When** el operador pulsa el número o el botón Proyectar, **Then** se proyecta de inmediato en vivo (`LiveStateManager`).
+  - **Given** una versión remota (ej. RVR1960, RV1909) y un capítulo que no ha sido descargado en SQLite, **When** el operador lo consulta, **Then** el backend obtiene el capítulo desde el proveedor remoto seguro, lo guarda en SQLite (`bible_verses` y FTS5) y lo devuelve para visualización y proyección inmediata.
+  - **Given** un capítulo previamente consultado o precargado, **When** el operador lo consulta nuevamente, **Then** se sirve de inmediato desde SQLite sin peticiones a internet (modo offline garantizado).
+  - **Given** falta de conectividad o falla de red, **When** se consulta un capítulo no descargado, **Then** el sistema devuelve un error controlado ("Sin conexión a internet") sin romper la aplicación.
+  - **Given** la vista del operador, **When** se encuentra en operación normal, **Then** el formulario técnico de "Importar XML local" permanece replegado por defecto bajo un botón secundario para mantener la interfaz limpia.
+- **Pruebas requeridas:**
+  - Unitarias: cliente remoto de pasajes bíblicos (mapeo de versículos, manejo seguro de HTTP/fallos offline).
+  - Integración: endpoint de obtención/persistencia de capítulos bíblicos a demanda en SQLite y catálogo de versiones.
+  - Frontend: pruebas Vitest del selector en 3 pasos (`Libro` → `Capítulo` → `Versículo`), botón de versículo y formulario colapsable de importación.
+
