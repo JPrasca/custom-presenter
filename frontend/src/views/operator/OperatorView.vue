@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import BibleNavigator from '../../components/BibleNavigator.vue';
 import StatusBadge from '../../components/StatusBadge.vue';
 import { useOperatorShortcuts } from '../../composables/useOperatorShortcuts';
+import { CANONICAL_BIBLE_BOOKS, normalizeBookText } from '../../data/bibleBooks';
 import {
   presenterApi,
   type AnnouncementItem,
@@ -304,6 +305,130 @@ async function handleProjectBibleVerse(verse: BibleVerseItem) {
   });
 }
 
+interface ActiveBibleSlideInfo {
+  versionId?: string;
+  versionAbbr?: string;
+  bookNumber: number;
+  chapter: number;
+  verse: number;
+  bookName?: string;
+}
+
+const activeBibleSlide = computed<ActiveBibleSlideInfo | null>(() => {
+  const slide = activeStore.state.value.currentSlide;
+  if (!slide) {
+    return null;
+  }
+
+  const parts = slide.id.split(':');
+  if (parts.length >= 4) {
+    const bookNumber = parseInt(parts[1], 10);
+    const chapter = parseInt(parts[2], 10);
+    const verse = parseInt(parts[3], 10);
+    if (!Number.isNaN(bookNumber) && !Number.isNaN(chapter) && !Number.isNaN(verse)) {
+      const version = bibleVersions.value.find((v) => v.id === parts[0]);
+      return {
+        versionId: parts[0],
+        versionAbbr: version?.abbreviation,
+        bookNumber,
+        chapter,
+        verse,
+      };
+    }
+  }
+
+  const refText = (slide.reference || slide.title || '').trim();
+  if (refText) {
+    const colonIdx = refText.indexOf(':');
+    if (colonIdx > 0) {
+      const beforeColon = refText.slice(0, colonIdx).trim();
+      const afterColon = refText.slice(colonIdx + 1).trim();
+      const spaceIdx = beforeColon.lastIndexOf(' ');
+      if (spaceIdx > 0) {
+        const bookName = beforeColon.slice(0, spaceIdx).trim();
+        const chapter = parseInt(beforeColon.slice(spaceIdx + 1), 10);
+        const parenIdx = afterColon.indexOf('(');
+        const verseStr = parenIdx >= 0 ? afterColon.slice(0, parenIdx).trim() : afterColon.trim();
+        const verse = parseInt(verseStr.split('-')[0], 10);
+        const abbr =
+          parenIdx >= 0
+            ? afterColon
+                .slice(parenIdx + 1)
+                .replace(')', '')
+                .trim()
+            : undefined;
+
+        if (!Number.isNaN(chapter) && !Number.isNaN(verse)) {
+          const version = bibleVersions.value.find(
+            (v) =>
+              (abbr && v.abbreviation.toUpperCase() === abbr.toUpperCase()) ||
+              (selectedVersionId.value && v.id === selectedVersionId.value)
+          );
+          const canonical = CANONICAL_BIBLE_BOOKS.find(
+            (b) => normalizeBookText(b.name) === normalizeBookText(bookName)
+          );
+          return {
+            versionId: version?.id,
+            versionAbbr: version?.abbreviation ?? abbr,
+            bookNumber: canonical?.number ?? 1,
+            chapter,
+            verse,
+            bookName,
+          };
+        }
+      }
+    }
+  }
+
+  return null;
+});
+
+async function handleHotSwitchVersion(targetVersion: BibleVersionItem) {
+  const info = activeBibleSlide.value;
+  if (!info) {
+    return;
+  }
+
+  await runAction(async () => {
+    let bookNumber = info.bookNumber;
+    if (!bookNumber && info.bookName) {
+      const canonical = CANONICAL_BIBLE_BOOKS.find(
+        (b) => normalizeBookText(b.name) === normalizeBookText(info.bookName!)
+      );
+      if (canonical) {
+        bookNumber = canonical.number;
+      }
+    }
+
+    const verses = await presenterApi.getBibleChapterVerses(
+      targetVersion.id,
+      bookNumber,
+      info.chapter
+    );
+
+    const targetVerse = verses.find((v) => v.verse === info.verse) ?? verses[0];
+    if (!targetVerse) {
+      return;
+    }
+
+    selectedVersionId.value = targetVersion.id;
+    bibleVerses.value = verses;
+    await handleProjectBibleVerse(targetVerse);
+    statusNotice.value = `Versión cambiada a ${targetVersion.abbreviation} en vivo.`;
+  });
+}
+
+function isHotVersionActive(version: BibleVersionItem): boolean {
+  if (!activeBibleSlide.value) {
+    return false;
+  }
+  const currentAbbr = (activeBibleSlide.value.versionAbbr ?? '').toUpperCase();
+  return (
+    currentAbbr === version.abbreviation.toUpperCase() ||
+    activeBibleSlide.value.versionId === version.id
+  );
+}
+
 async function handleCreateAnnouncement() {
   await runAction(async () => {
     await presenterApi.createAnnouncement(announcementTitle.value, announcementBody.value);
@@ -405,266 +530,308 @@ onMounted(() => {
     <p v-if="errorMessage" role="alert" class="alert-error">{{ errorMessage }}</p>
     <p v-if="statusNotice" class="alert-ok">{{ statusNotice }}</p>
 
-    <section class="controls" aria-label="Controles en vivo">
-      <button type="button" data-testid="btn-prev" @click="activeStore.prevSlide">
-        Anterior [↑]
-      </button>
-      <button type="button" data-testid="btn-next" @click="activeStore.nextSlide">
-        Siguiente [↓]
-      </button>
-      <button
-        type="button"
-        data-testid="btn-clear"
-        :class="{ active: activeStore.state.value.flags.clearText }"
-        @click="activeStore.toggleClearText"
-      >
-        Limpiar texto [C / Esc]
-      </button>
-      <button
-        type="button"
-        data-testid="btn-blackout"
-        :class="{ active: activeStore.state.value.flags.blackout }"
-        @click="activeStore.toggleBlackout"
-      >
-        Blackout [B]
-      </button>
-      <button
-        type="button"
-        data-testid="btn-logo"
-        :class="{ active: activeStore.state.value.flags.logo }"
-        @click="activeStore.toggleLogo"
-      >
-        Logo [L]
-      </button>
-    </section>
-
-    <section class="workspace">
-      <div class="panel">
-        <h2>Preview</h2>
-        <ul class="slide-list">
-          <li v-for="slide in activeStore.slides.value" :key="slide.id">
-            <button
-              type="button"
-              class="slide-item"
-              :class="{ selected: activeStore.state.value.currentSlide?.id === slide.id }"
-              @click="activeStore.projectSlide(slide)"
-            >
-              <strong>{{ slide.title }}</strong>
-              <span>{{ slide.text }}</span>
-            </button>
-          </li>
-        </ul>
-      </div>
-
-      <div class="panel">
-        <h2>Live</h2>
-        <div class="live-monitor" :class="{ blackout: activeStore.state.value.flags.blackout }">
-          <p v-if="liveTextVisible && activeStore.state.value.currentSlide" class="live-text">
-            {{ activeStore.state.value.currentSlide.text }}
-          </p>
-          <p v-else class="live-placeholder">
-            {{ statusLabel }}
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <section class="panel library-section" aria-label="Biblioteca y gestión">
-      <nav class="tabs">
-        <button
-          v-for="tab in LIBRARY_TABS"
-          :key="tab.id"
-          type="button"
-          :data-testid="`tab-${tab.id}`"
-          :class="{ active: activeTab === tab.id }"
-          @click="activeTab = tab.id"
-        >
-          {{ tab.label }}
-        </button>
-      </nav>
-
-      <div v-if="activeTab === 'songs'" data-testid="panel-songs" class="tab-panel">
-        <div class="form-row">
-          <input
-            v-model="onlineLyricsQuery"
-            data-testid="online-lyrics-input"
-            placeholder="Buscar letra en internet (ej. Sublime Gracia)..."
-            @keydown.enter="handleSearchOnlineLyrics"
-          />
+    <div class="operator-dashboard">
+      <!-- Columna Izquierda: Biblioteca y Contenido (~60%) -->
+      <section class="panel library-section col-library" aria-label="Biblioteca y gestión">
+        <nav class="tabs">
           <button
+            v-for="tab in LIBRARY_TABS"
+            :key="tab.id"
             type="button"
-            data-testid="online-lyrics-search-btn"
-            @click="handleSearchOnlineLyrics"
+            :data-testid="`tab-${tab.id}`"
+            :class="{ active: activeTab === tab.id }"
+            @click="activeTab = tab.id"
           >
-            Buscar letra online
+            {{ tab.label }}
           </button>
-        </div>
-        <ul v-if="onlineLyricsResults.length > 0" class="item-list">
-          <li v-for="(item, idx) in onlineLyricsResults" :key="`${item.trackName}-${idx}`">
-            <span>{{ item.trackName }} — {{ item.artistName }}</span>
-            <button
-              type="button"
-              :data-testid="`online-lyrics-use-${idx}`"
-              @click="useOnlineLyricsResult(item)"
-            >
-              Usar letra
-            </button>
-          </li>
-        </ul>
-        <div class="form-row">
-          <input v-model="songTitle" data-testid="song-title-input" placeholder="Título" />
-          <input v-model="songAuthor" placeholder="Autor" />
-          <input v-model="songKey" placeholder="Tono" />
-        </div>
-        <textarea
-          v-model="songLyrics"
-          data-testid="song-lyrics-input"
-          rows="4"
-          placeholder="Letra por estrofas..."
-        />
-        <div class="form-row">
-          <button type="button" data-testid="song-save-btn" @click="handleSaveSong">
-            {{ editingSongId ? 'Actualizar canción' : 'Guardar canción' }}
-          </button>
-          <button
-            v-if="editingSongId"
-            type="button"
-            data-testid="song-cancel-edit-btn"
-            @click="resetSongForm"
-          >
-            Cancelar edición
-          </button>
-        </div>
-        <ul class="item-list">
-          <li v-for="song in songs" :key="song.id">
-            <span>{{ song.title }}</span>
+        </nav>
+
+        <div class="tab-content-scroll">
+          <div v-if="activeTab === 'songs'" data-testid="panel-songs" class="tab-panel">
             <div class="form-row">
-              <button type="button" @click="handleProjectSong(song)">Proyectar</button>
+              <input
+                v-model="onlineLyricsQuery"
+                data-testid="online-lyrics-input"
+                placeholder="Buscar letra en internet (ej. Sublime Gracia)..."
+                @keydown.enter="handleSearchOnlineLyrics"
+              />
               <button
                 type="button"
-                :data-testid="`song-edit-${song.id}`"
-                @click="startEditSong(song)"
+                data-testid="online-lyrics-search-btn"
+                @click="handleSearchOnlineLyrics"
               >
-                Editar
-              </button>
-              <button
-                type="button"
-                :data-testid="`song-delete-${song.id}`"
-                @click="handleDeleteSong(song.id)"
-              >
-                Eliminar
+                Buscar letra online
               </button>
             </div>
-          </li>
-        </ul>
-      </div>
+            <ul v-if="onlineLyricsResults.length > 0" class="item-list">
+              <li v-for="(item, idx) in onlineLyricsResults" :key="`${item.trackName}-${idx}`">
+                <span>{{ item.trackName }} — {{ item.artistName }}</span>
+                <button
+                  type="button"
+                  :data-testid="`online-lyrics-use-${idx}`"
+                  @click="useOnlineLyricsResult(item)"
+                >
+                  Usar letra
+                </button>
+              </li>
+            </ul>
+            <div class="form-row">
+              <input v-model="songTitle" data-testid="song-title-input" placeholder="Título" />
+              <input v-model="songAuthor" placeholder="Autor" />
+              <input v-model="songKey" placeholder="Tono" />
+            </div>
+            <textarea
+              v-model="songLyrics"
+              data-testid="song-lyrics-input"
+              rows="4"
+              placeholder="Letra por estrofas..."
+            />
+            <div class="form-row">
+              <button type="button" data-testid="song-save-btn" @click="handleSaveSong">
+                {{ editingSongId ? 'Actualizar canción' : 'Guardar canción' }}
+              </button>
+              <button
+                v-if="editingSongId"
+                type="button"
+                data-testid="song-cancel-edit-btn"
+                @click="resetSongForm"
+              >
+                Cancelar edición
+              </button>
+            </div>
+            <ul class="item-list">
+              <li v-for="song in songs" :key="song.id">
+                <span>{{ song.title }}</span>
+                <div class="form-row">
+                  <button type="button" @click="handleProjectSong(song)">Proyectar</button>
+                  <button
+                    type="button"
+                    :data-testid="`song-edit-${song.id}`"
+                    @click="startEditSong(song)"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    :data-testid="`song-delete-${song.id}`"
+                    @click="handleDeleteSong(song.id)"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </li>
+            </ul>
+          </div>
 
-      <BibleNavigator
-        v-else-if="activeTab === 'bibles'"
-        :versions="bibleVersions"
-        :selected-version-id="selectedVersionId"
-        :books="bibleBooks"
-        :verses="bibleVerses"
-        :query="bibleQuery"
-        @update:selected-version-id="(v) => (selectedVersionId = v)"
-        @update:query="(q) => (bibleQuery = q)"
-        @search="handleSearchBible"
-        @load-chapter="handleLoadChapter"
-        @project-verse="handleProjectBibleVerse"
-        @import-bible="handleImportBible"
-      />
-
-      <div
-        v-else-if="activeTab === 'announcements'"
-        data-testid="panel-announcements"
-        class="tab-panel"
-      >
-        <input v-model="announcementTitle" placeholder="Título del anuncio" />
-        <textarea v-model="announcementBody" rows="3" placeholder="Texto del anuncio..." />
-        <button type="button" @click="handleCreateAnnouncement">Guardar anuncio</button>
-        <ul class="item-list">
-          <li v-for="ann in announcements" :key="ann.id">
-            <span>{{ ann.title }}</span>
-            <button type="button" @click="handleProjectAnnouncement(ann)">Proyectar</button>
-          </li>
-        </ul>
-      </div>
-
-      <div v-else-if="activeTab === 'playlists'" data-testid="panel-playlists" class="tab-panel">
-        <div class="form-row">
-          <input v-model="playlistName" placeholder="Nombre de la playlist" />
-          <button type="button" @click="handleCreatePlaylist">Crear playlist</button>
-        </div>
-        <ul class="item-list">
-          <li v-for="pl in playlists" :key="pl.id">
-            <span>{{ pl.name }} ({{ pl.items.length }} ítems)</span>
-            <button
-              v-if="pl.items.length > 0"
-              type="button"
-              @click="handleProjectPlaylistItem(pl.id, 0)"
-            >
-              Iniciar
-            </button>
-          </li>
-        </ul>
-      </div>
-
-      <div v-else-if="activeTab === 'themes'" data-testid="panel-themes" class="tab-panel">
-        <div class="form-row">
-          <label>
-            Proyector px
-            <input v-model.number="projectorTheme.fontSizePx" type="number" min="16" max="160" />
-          </label>
-          <label>
-            Color texto
-            <input v-model="projectorTheme.textColor" />
-          </label>
-          <label>
-            OBS px
-            <input v-model.number="obsTheme.fontSizePx" type="number" min="14" max="120" />
-          </label>
-          <button type="button" @click="handleSaveThemes">Guardar temas</button>
-        </div>
-      </div>
-
-      <div v-else-if="activeTab === 'media'" data-testid="panel-media" class="tab-panel">
-        <div class="form-row">
-          <input
-            type="file"
-            accept=".png,.jpg,.jpeg,.webp,.mp4,.webm"
-            @change="(e) => (mediaFile = (e.target as HTMLInputElement).files?.[0] ?? null)"
+          <BibleNavigator
+            v-else-if="activeTab === 'bibles'"
+            :versions="bibleVersions"
+            :selected-version-id="selectedVersionId"
+            :books="bibleBooks"
+            :verses="bibleVerses"
+            :query="bibleQuery"
+            @update:selected-version-id="(v) => (selectedVersionId = v)"
+            @update:query="(q) => (bibleQuery = q)"
+            @search="handleSearchBible"
+            @load-chapter="handleLoadChapter"
+            @project-verse="handleProjectBibleVerse"
+            @import-bible="handleImportBible"
           />
-          <button type="button" @click="handleUploadMedia">Subir fondo</button>
-          <button type="button" @click="handleClearMedia">Quitar fondo</button>
-        </div>
-        <ul class="item-list">
-          <li v-for="m in mediaAssets" :key="m.id">
-            <span>{{ m.originalName }} ({{ m.kind }})</span>
-            <button type="button" @click="handleAssignMedia(m.id)">Usar fondo</button>
-          </li>
-        </ul>
-      </div>
 
-      <div v-else-if="activeTab === 'backup'" data-testid="panel-backup" class="tab-panel">
-        <div class="form-row">
-          <a :href="presenterApi.exportBackupUrl()" download="custom-presenter-backup.json">
-            Descargar respaldo JSON
-          </a>
+          <div
+            v-else-if="activeTab === 'announcements'"
+            data-testid="panel-announcements"
+            class="tab-panel"
+          >
+            <input v-model="announcementTitle" placeholder="Título del anuncio" />
+            <textarea v-model="announcementBody" rows="3" placeholder="Texto del anuncio..." />
+            <button type="button" @click="handleCreateAnnouncement">Guardar anuncio</button>
+            <ul class="item-list">
+              <li v-for="ann in announcements" :key="ann.id">
+                <span>{{ ann.title }}</span>
+                <button type="button" @click="handleProjectAnnouncement(ann)">Proyectar</button>
+              </li>
+            </ul>
+          </div>
+
+          <div
+            v-else-if="activeTab === 'playlists'"
+            data-testid="panel-playlists"
+            class="tab-panel"
+          >
+            <div class="form-row">
+              <input v-model="playlistName" placeholder="Nombre de la playlist" />
+              <button type="button" @click="handleCreatePlaylist">Crear playlist</button>
+            </div>
+            <ul class="item-list">
+              <li v-for="pl in playlists" :key="pl.id">
+                <span>{{ pl.name }} ({{ pl.items.length }} ítems)</span>
+                <button
+                  v-if="pl.items.length > 0"
+                  type="button"
+                  @click="handleProjectPlaylistItem(pl.id, 0)"
+                >
+                  Iniciar
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          <div v-else-if="activeTab === 'themes'" data-testid="panel-themes" class="tab-panel">
+            <div class="form-row">
+              <label>
+                Proyector px
+                <input
+                  v-model.number="projectorTheme.fontSizePx"
+                  type="number"
+                  min="16"
+                  max="160"
+                />
+              </label>
+              <label>
+                Color texto
+                <input v-model="projectorTheme.textColor" />
+              </label>
+              <label>
+                OBS px
+                <input v-model.number="obsTheme.fontSizePx" type="number" min="14" max="120" />
+              </label>
+              <button type="button" @click="handleSaveThemes">Guardar temas</button>
+            </div>
+          </div>
+
+          <div v-else-if="activeTab === 'media'" data-testid="panel-media" class="tab-panel">
+            <div class="form-row">
+              <input
+                type="file"
+                accept=".png,.jpg,.jpeg,.webp,.mp4,.webm"
+                @change="(e) => (mediaFile = (e.target as HTMLInputElement).files?.[0] ?? null)"
+              />
+              <button type="button" @click="handleUploadMedia">Subir fondo</button>
+              <button type="button" @click="handleClearMedia">Quitar fondo</button>
+            </div>
+            <ul class="item-list">
+              <li v-for="m in mediaAssets" :key="m.id">
+                <span>{{ m.originalName }} ({{ m.kind }})</span>
+                <button type="button" @click="handleAssignMedia(m.id)">Usar fondo</button>
+              </li>
+            </ul>
+          </div>
+
+          <div v-else-if="activeTab === 'backup'" data-testid="panel-backup" class="tab-panel">
+            <div class="form-row">
+              <a :href="presenterApi.exportBackupUrl()" download="custom-presenter-backup.json">
+                Descargar respaldo JSON
+              </a>
+            </div>
+            <textarea v-model="backupJsonInput" rows="4" placeholder="Pegar JSON de respaldo..." />
+            <button type="button" @click="handleImportBackup">Importar respaldo</button>
+          </div>
         </div>
-        <textarea v-model="backupJsonInput" rows="4" placeholder="Pegar JSON de respaldo..." />
-        <button type="button" @click="handleImportBackup">Importar respaldo</button>
-      </div>
-    </section>
+      </section>
+
+      <!-- Columna Derecha: Monitoreo Live, Controles y Preview (~40%) -->
+      <aside class="col-control" aria-label="Monitoreo y Controles">
+        <!-- Monitor Live con Switch de Versiones en cabecera -->
+        <div class="panel live-panel">
+          <div class="panel-header">
+            <h2>Live</h2>
+            <div v-if="activeBibleSlide" class="hot-versions-bar" data-testid="hot-versions-bar">
+              <span class="hot-version-label">Versión:</span>
+              <button
+                v-for="v in bibleVersions"
+                :key="v.id"
+                type="button"
+                :data-testid="`hot-version-${v.abbreviation}`"
+                class="btn-hot-version"
+                :class="{ active: isHotVersionActive(v) }"
+                :title="v.name"
+                @click="handleHotSwitchVersion(v)"
+              >
+                {{ v.abbreviation }}
+              </button>
+            </div>
+          </div>
+          <div class="live-monitor" :class="{ blackout: activeStore.state.value.flags.blackout }">
+            <p v-if="liveTextVisible && activeStore.state.value.currentSlide" class="live-text">
+              {{ activeStore.state.value.currentSlide.text }}
+            </p>
+            <p v-else class="live-placeholder">
+              {{ statusLabel }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Barra de Controles en vivo -->
+        <div class="panel controls-panel">
+          <section class="controls" aria-label="Controles en vivo">
+            <button type="button" data-testid="btn-prev" @click="activeStore.prevSlide">
+              Anterior [↑]
+            </button>
+            <button type="button" data-testid="btn-next" @click="activeStore.nextSlide">
+              Siguiente [↓]
+            </button>
+            <button
+              type="button"
+              data-testid="btn-clear"
+              :class="{ active: activeStore.state.value.flags.clearText }"
+              @click="activeStore.toggleClearText"
+            >
+              Limpiar texto [C / Esc]
+            </button>
+            <button
+              type="button"
+              data-testid="btn-blackout"
+              :class="{ active: activeStore.state.value.flags.blackout }"
+              @click="activeStore.toggleBlackout"
+            >
+              Blackout [B]
+            </button>
+            <button
+              type="button"
+              data-testid="btn-logo"
+              :class="{ active: activeStore.state.value.flags.logo }"
+              @click="activeStore.toggleLogo"
+            >
+              Logo [L]
+            </button>
+          </section>
+        </div>
+
+        <!-- Panel Preview -->
+        <div class="panel preview-panel">
+          <h2>Preview</h2>
+          <div class="preview-scroll">
+            <ul class="slide-list">
+              <li v-for="slide in activeStore.slides.value" :key="slide.id">
+                <button
+                  type="button"
+                  class="slide-item"
+                  :class="{ selected: activeStore.state.value.currentSlide?.id === slide.id }"
+                  @click="activeStore.projectSlide(slide)"
+                >
+                  <strong>{{ slide.title }}</strong>
+                  <span>{{ slide.text }}</span>
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </aside>
+    </div>
   </main>
 </template>
 
 <style scoped>
 .operator {
-  padding: 1.25rem;
+  padding: 0.75rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  min-height: 100vh;
+  gap: 0.75rem;
+  height: 100vh;
+  max-height: 100vh;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .topbar {
@@ -673,6 +840,7 @@ onMounted(() => {
   justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .brand {
@@ -691,17 +859,120 @@ onMounted(() => {
 }
 
 .alert-error {
-  padding: 0.6rem 0.9rem;
+  padding: 0.4rem 0.75rem;
   border-radius: 0.375rem;
   background-color: #451a1a;
   color: #fecaca;
+  margin: 0;
+  flex-shrink: 0;
 }
 
 .alert-ok {
-  padding: 0.6rem 0.9rem;
+  padding: 0.4rem 0.75rem;
   border-radius: 0.375rem;
   background-color: #143625;
   color: #bbf7d0;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+/* Dashboard de 2 Columnas Unificado */
+.operator-dashboard {
+  display: grid;
+  grid-template-columns: minmax(400px, 1.25fr) minmax(360px, 1fr);
+  gap: 1rem;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.col-library {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow: hidden;
+}
+
+.tab-content-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.35rem;
+}
+
+.col-control {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.hot-versions-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.hot-version-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.btn-hot-version {
+  padding: 0.2rem 0.5rem !important;
+  font-size: 0.75rem !important;
+  font-weight: 700;
+  border-radius: 0.25rem !important;
+  background-color: #1c212b !important;
+  border: 1px solid #333a46 !important;
+  color: #cbd5e1 !important;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.btn-hot-version:hover {
+  border-color: var(--accent) !important;
+  color: #ffffff !important;
+}
+
+.btn-hot-version.active {
+  background-color: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.4);
+}
+
+.controls-panel {
+  padding: 0.6rem 0.75rem;
+  flex-shrink: 0;
+}
+
+.preview-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.preview-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.35rem;
 }
 
 .controls,
@@ -717,7 +988,7 @@ onMounted(() => {
 .tabs button,
 .tab-panel button,
 .slide-item {
-  padding: 0.5rem 0.9rem;
+  padding: 0.45rem 0.8rem;
   border-radius: 0.375rem;
   border: 1px solid #2a2f3a;
   background-color: var(--bg-secondary);
@@ -732,20 +1003,14 @@ onMounted(() => {
   border-color: var(--accent);
 }
 
-.workspace {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
 .panel {
   background-color: var(--bg-secondary);
   border: 1px solid #2a2f3a;
   border-radius: 0.5rem;
-  padding: 1rem;
+  padding: 0.85rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.65rem;
 }
 
 .tab-panel {
@@ -795,8 +1060,9 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.5rem;
+  padding: 1.25rem;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .live-monitor.blackout {
@@ -805,10 +1071,29 @@ onMounted(() => {
 
 .live-text {
   white-space: pre-line;
-  font-size: 1.25rem;
+  font-size: 1.15rem;
 }
 
 .live-placeholder {
   color: var(--text-muted);
+}
+
+@media (max-width: 900px) {
+  .operator {
+    height: auto;
+    max-height: none;
+    overflow-y: auto;
+  }
+
+  .operator-dashboard {
+    grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
+  }
+
+  .tab-content-scroll,
+  .preview-scroll {
+    overflow-y: visible;
+  }
 }
 </style>
