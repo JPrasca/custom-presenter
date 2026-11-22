@@ -169,13 +169,14 @@ function submitImport() {
         type="button"
         data-testid="btn-toggle-periodic-table"
         :class="{ active: showPeriodicTable }"
+        title="Selector de Libros"
         @click="showPeriodicTable = !showPeriodicTable"
       >
-        {{ showPeriodicTable ? 'Ocultar Tabla' : 'Tabla Periódica' }}
+        {{ showPeriodicTable ? 'Ocultar Libros' : 'Selector de Libros' }}
       </button>
     </div>
 
-    <!-- Navegación Tabla Periódica -->
+    <!-- Navegación Selector de Libros (Estilo cuadrícula canónica) -->
     <div v-if="showPeriodicTable" class="periodic-table">
       <div class="testament-group">
         <h3>Antiguo Testamento (39 libros)</h3>

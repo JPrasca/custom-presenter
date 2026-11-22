@@ -135,23 +135,6 @@ internal static class Program
 
     private static async Task EnsureDefaultBibleVersionsAsync(SqliteBibleRepository bibleRepo)
     {
-        var existing = await bibleRepo.ListVersionsAsync().ConfigureAwait(false);
-        if (existing.Count > 0)
-        {
-            return;
-        }
-
-        var defaults = new (Guid Id, string Name, string Abbr)[]
-        {
-            (Guid.Parse("00000000-0000-0000-0000-000000000001"), "Reina Valera 1960", "RVR60"),
-            (Guid.Parse("00000000-0000-0000-0000-000000000002"), "Reina Valera 1909", "RV1909"),
-            (Guid.Parse("00000000-0000-0000-0000-000000000003"), "Nueva Versión Internacional", "NVI"),
-        };
-
-        foreach (var (id, name, abbr) in defaults)
-        {
-            var version = new BibleVersion(id, name, abbr, DateTimeOffset.UtcNow);
-            await bibleRepo.SaveBibleAsync(version, []).ConfigureAwait(false);
-        }
+        await DefaultBibleCatalog.EnsureDefaultsAsync(bibleRepo).ConfigureAwait(false);
     }
 }
