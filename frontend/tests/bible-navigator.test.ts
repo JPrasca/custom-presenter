@@ -63,8 +63,11 @@ describe('BibleNavigator — Autocompletado y Tabla Periódica (HU-16)', () => {
       },
     });
 
-    // Act - Abrir Tabla Periódica y elegir Salmos (Sal) -> Capítulo 23 -> Versículo 1
-    await wrapper.get('[data-testid="btn-toggle-periodic-table"]').trigger('click');
+    // Act - Abrir Selector de Libros y elegir Salmos (Sal) -> Capítulo 23 -> Versículo 1
+    const toggleBtn = wrapper.get('[data-testid="btn-toggle-periodic-table"]');
+    expect(toggleBtn.text()).toBe('Selector de Libros');
+    await toggleBtn.trigger('click');
+    expect(toggleBtn.text()).toBe('Ocultar Libros');
     const tiles = wrapper.findAll('[data-testid^="bible-tile-"]');
     expect(tiles.length).toBe(66);
 
