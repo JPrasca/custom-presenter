@@ -76,4 +76,47 @@ describe('BibleNavigator — Autocompletado y Tabla Periódica (HU-16)', () => {
     expect(onLoadChapter).toHaveBeenCalledWith(1, 23);
     expect(onProjectVerse).toHaveBeenCalledWith(verses[0]);
   });
+
+  it('HU-19: todos los 66 libros canónicos están disponibles y permite proyectar desde botonera de versículos', async () => {
+    // Arrange
+    const onLoadChapter = vi.fn();
+    const onProjectVerse = vi.fn();
+
+    const wrapper = mount(BibleNavigator, {
+      props: {
+        versions,
+        selectedVersionId: 'v1',
+        books: [], // Sin libros descargados previamente (carga a demanda)
+        verses,
+        query: '',
+        onLoadChapter,
+        onProjectVerse,
+      },
+    });
+
+    // Act - Abrir tabla y verificar que Juan (libro 43) está habilitado
+    await wrapper.get('[data-testid="btn-toggle-periodic-table"]').trigger('click');
+    const juanTile = wrapper.get('[data-testid="bible-tile-43"]');
+    expect(juanTile.attributes('disabled')).toBeUndefined();
+
+    // Seleccionar Juan -> Capítulos canónicos (21)
+    await juanTile.trigger('click');
+    expect(wrapper.find('[data-testid="bible-chapter-21"]').exists()).toBe(true);
+
+    // Seleccionar Capítulo 23 (de los versículos cargados) y pulsar versículo 1 en botonera
+    await wrapper.get('[data-testid="bible-chapter-1"]').trigger('click');
+    expect(onLoadChapter).toHaveBeenCalledWith(43, 1);
+
+    // Pulsar botón de versículo en la botonera
+    const verseBtn = wrapper.get('[data-testid="bible-verse-tile-1"]');
+    await verseBtn.trigger('click');
+
+    // Assert
+    expect(onProjectVerse).toHaveBeenCalledWith(verses[0]);
+
+    // Verificar sección colapsable de importación de archivo
+    expect(wrapper.find('[data-testid="bible-import-name"]').exists()).toBe(false);
+    await wrapper.get('[data-testid="btn-toggle-import-xml"]').trigger('click');
+    expect(wrapper.find('input[type="file"]').exists()).toBe(true);
+  });
 });

@@ -100,8 +100,9 @@ public sealed class BibleImporter : IBibleImporter
                         break;
 
                     case "b":
-                        currentBookNumber++;
                         currentBookName = (reader.GetAttribute("n") ?? string.Empty).Trim();
+                        var canonicalNum = BibleReferenceParser.ResolveCanonicalBookNumber(currentBookName);
+                        currentBookNumber = canonicalNum ?? (currentBookNumber + 1);
                         break;
 
                     case "BIBLEBOOK":

@@ -101,6 +101,12 @@ public sealed class PlaylistServiceTests
 
         public Task<IReadOnlyList<BibleVerse>> SearchVersesFtsAsync(Guid versionId, string sanitizedFtsQuery, int limit = 50, CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<BibleVerse>>([]);
+
+        public Task SaveVersesBatchAsync(IReadOnlyList<BibleVerse> verses, CancellationToken cancellationToken = default)
+        {
+            Verses.AddRange(verses);
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class InMemoryAnnouncementRepository : IAnnouncementRepository

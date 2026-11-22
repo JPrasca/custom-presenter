@@ -187,10 +187,13 @@ public sealed class FullApiIntegrationTests : IAsyncLifetime
 
         var booksRes = await http.GetAsync($"/api/bibles/{importedVersion.Id:D}/books");
         Assert.Equal(HttpStatusCode.OK, booksRes.StatusCode);
-        var booksBody = await booksRes.Content.ReadAsStringAsync();
-        Assert.Contains("Salmos", booksBody, StringComparison.Ordinal);
+        var books = await booksRes.Content.ReadFromJsonAsync<CustomPresenter.Domain.Bibles.BibleBookSummary[]>();
+        Assert.NotNull(books);
+        Assert.Single(books);
+        Assert.Equal("Salmos", books[0].BookName);
+        Assert.Equal(19, books[0].BookNumber);
 
-        var chapterRes = await http.GetAsync($"/api/bibles/{importedVersion.Id:D}/books/1/chapters/23");
+        var chapterRes = await http.GetAsync($"/api/bibles/{importedVersion.Id:D}/books/{books[0].BookNumber}/chapters/23");
         Assert.Equal(HttpStatusCode.OK, chapterRes.StatusCode);
         var chapterVerses = await chapterRes.Content.ReadFromJsonAsync<CustomPresenter.Domain.Bibles.BibleVerse[]>();
         Assert.NotNull(chapterVerses);

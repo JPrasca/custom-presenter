@@ -21,6 +21,24 @@ public static partial class BibleReferenceParser
 {
     private static readonly Dictionary<string, int> CanonicalBooks = BuildCanonicalBookMap();
 
+    private static readonly string[] CanonicalNames =
+    [
+        "Génesis", "Éxodo", "Levítico", "Números", "Deuteronomio",
+        "Josué", "Jueces", "Rut", "1 Samuel", "2 Samuel",
+        "1 Reyes", "2 Reyes", "1 Crónicas", "2 Crónicas", "Esdras",
+        "Nehemías", "Ester", "Job", "Salmos", "Proverbios",
+        "Eclesiastés", "Cantares", "Isaías", "Jeremías", "Lamentaciones",
+        "Ezequiel", "Daniel", "Oseas", "Joel", "Amós",
+        "Abdías", "Jonás", "Miqueas", "Nahúm", "Habacuc",
+        "Sofonías", "Hageo", "Zacarías", "Malaquías", "Mateo",
+        "Marcos", "Lucas", "Juan", "Hechos", "Romanos",
+        "1 Corintios", "2 Corintios", "Gálatas", "Efesios", "Filipenses",
+        "Colosenses", "1 Tesalonicenses", "2 Tesalonicenses", "1 Timoteo", "2 Timoteo",
+        "Tito", "Filemón", "Hebreos", "Santiago", "1 Pedro",
+        "2 Pedro", "1 Juan", "2 Juan", "3 Juan", "Judas",
+        "Apocalipsis"
+    ];
+
     [GeneratedRegex(
         @"^\s*(?<book>(?:(?:III|II|I)\s+|(?:[123])\s*)?[\p{L}]+(?:\s+[\p{L}]+)*)\s+(?<chapter>\d{1,3})(?::(?<start>\d{1,3})(?:-(?<end>\d{1,3}))?)?\s*$",
         RegexOptions.IgnoreCase)]
@@ -79,6 +97,24 @@ public static partial class BibleReferenceParser
 
         reference = new BibleReference(rawBook, canonicalNumber, chapter, startVerse, endVerse);
         return true;
+    }
+
+    public static string? GetCanonicalBookName(int bookNumber)
+    {
+        return bookNumber is >= 1 and <= 66
+            ? CanonicalNames[bookNumber - 1]
+            : null;
+    }
+
+    public static int? ResolveCanonicalBookNumber(string bookName)
+    {
+        if (string.IsNullOrWhiteSpace(bookName))
+        {
+            return null;
+        }
+
+        var normalized = NormalizeBookKey(bookName).Replace(" ", string.Empty, StringComparison.Ordinal);
+        return CanonicalBooks.TryGetValue(normalized, out var number) ? number : null;
     }
 
     public static string NormalizeBookKey(string bookName)

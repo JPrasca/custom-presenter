@@ -6,7 +6,9 @@ using CustomPresenter.Application.Media;
 using CustomPresenter.Application.Playlists;
 using CustomPresenter.Application.Songs;
 using CustomPresenter.Application.Themes;
+using CustomPresenter.Domain.Bibles;
 using CustomPresenter.Infrastructure.Backup;
+using CustomPresenter.Infrastructure.Http;
 using CustomPresenter.Infrastructure.Importers;
 using CustomPresenter.Infrastructure.Lyrics;
 using CustomPresenter.Infrastructure.Media;
@@ -66,6 +68,7 @@ internal static class Program
 
         var songRepo = new SqliteSongRepository(connectionString);
         var bibleRepo = new SqliteBibleRepository(connectionString);
+        await EnsureDefaultBibleVersionsAsync(bibleRepo).ConfigureAwait(false);
         var announcementRepo = new SqliteAnnouncementRepository(connectionString);
         var playlistRepo = new SqlitePlaylistRepository(connectionString);
         var themeRepo = new SqliteThemeRepository(connectionString);
@@ -73,11 +76,12 @@ internal static class Program
         var mediaStorage = new LocalMediaStorage(mediaRoot);
 
         using var lyricsHttpClient = new HttpClient();
+        using var bibleHttpClient = new HttpClient();
         var themeService = new ThemeService(themeRepo);
         var services = new PresenterServices(
             new SongService(songRepo, new SongImporter(), new LrclibLyricsClient(lyricsHttpClient)),
             new BibleImportService(bibleRepo, new BibleImporter()),
-            new BibleSearchService(bibleRepo),
+            new BibleSearchService(bibleRepo, new BibleOnlineClient(bibleHttpClient)),
             new AnnouncementService(announcementRepo),
             new PlaylistService(playlistRepo, songRepo, bibleRepo, announcementRepo),
             themeService,
@@ -127,5 +131,27 @@ internal static class Program
         };
 
         return candidates.FirstOrDefault(Directory.Exists);
+    }
+
+    private static async Task EnsureDefaultBibleVersionsAsync(SqliteBibleRepository bibleRepo)
+    {
+        var existing = await bibleRepo.ListVersionsAsync().ConfigureAwait(false);
+        if (existing.Count > 0)
+        {
+            return;
+        }
+
+        var defaults = new (Guid Id, string Name, string Abbr)[]
+        {
+            (Guid.Parse("00000000-0000-0000-0000-000000000001"), "Reina Valera 1960", "RVR60"),
+            (Guid.Parse("00000000-0000-0000-0000-000000000002"), "Reina Valera 1909", "RV1909"),
+            (Guid.Parse("00000000-0000-0000-0000-000000000003"), "Nueva Versión Internacional", "NVI"),
+        };
+
+        foreach (var (id, name, abbr) in defaults)
+        {
+            var version = new BibleVersion(id, name, abbr, DateTimeOffset.UtcNow);
+            await bibleRepo.SaveBibleAsync(version, []).ConfigureAwait(false);
+        }
     }
 }
