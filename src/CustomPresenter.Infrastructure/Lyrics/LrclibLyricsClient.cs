@@ -10,7 +10,7 @@ namespace CustomPresenter.Infrastructure.Lyrics;
 /// </summary>
 public sealed class LrclibLyricsClient : ILyricsLookupClient
 {
-    public const int MaxResponseBytes = 256 * 1024;
+    public const int MaxResponseBytes = 2 * 1024 * 1024;
     private static readonly Uri BaseSearchUri = new("https://lrclib.net/api/search");
 
     private static readonly JsonSerializerOptions JsonOptions = new()
